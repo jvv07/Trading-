@@ -1,20 +1,15 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-from lib.auth import require_auth
-from lib.supabase_client import get_client
+from lib.supabase_client import get_client, SOLO_USER_ID
 from lib.data_fetcher import get_price
 
 st.set_page_config(page_title="Portfolio", layout="wide")
-require_auth()
-
 st.title("Portfolio")
 
 client = get_client()
-user_id = st.session_state.user.id
 
-# ── open positions ────────────────────────────────────────────────────────────
-res = client.table("positions").select("*").eq("user_id", user_id).eq("status", "open").execute()
+res = client.table("positions").select("*").eq("user_id", SOLO_USER_ID).eq("status", "open").execute()
 positions = res.data or []
 
 if not positions:
@@ -42,7 +37,6 @@ for p in positions:
 
 df = pd.DataFrame(rows)
 
-# ── summary cards ─────────────────────────────────────────────────────────────
 total_market = df["Market Value"].sum()
 total_cost = (df["Avg Cost"] * df["Qty"]).sum()
 total_pnl = df["Unrealized P&L"].sum()
@@ -54,7 +48,6 @@ c3.metric("Unrealized P&L", f"${total_pnl:,.2f}", delta=f"{total_pnl/total_cost*
 
 st.divider()
 
-# ── positions table ───────────────────────────────────────────────────────────
 st.dataframe(
     df.style.format({
         "Avg Cost": "${:.2f}",
@@ -71,7 +64,6 @@ st.dataframe(
     hide_index=True,
 )
 
-# ── allocation pie ────────────────────────────────────────────────────────────
 valid = df.dropna(subset=["Market Value"])
 if not valid.empty:
     fig = go.Figure(go.Pie(

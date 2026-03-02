@@ -1,19 +1,14 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-from lib.auth import require_auth
-from lib.supabase_client import get_client
+from lib.supabase_client import get_client, SOLO_USER_ID
 
 st.set_page_config(page_title="Analytics", layout="wide")
-require_auth()
-
 st.title("Analytics")
 
 client = get_client()
-user_id = st.session_state.user.id
 
-# ── trade data ────────────────────────────────────────────────────────────────
-res = client.table("trades").select("*").eq("user_id", user_id).order("executed_at").execute()
+res = client.table("trades").select("*").eq("user_id", SOLO_USER_ID).order("executed_at").execute()
 trades = res.data or []
 
 if not trades:
@@ -28,7 +23,6 @@ df["signed_notional"] = df.apply(
 )
 df["realized_pnl"] = df["signed_notional"] - df["commission"]
 
-# ── KPI row ───────────────────────────────────────────────────────────────────
 total_trades = len(df)
 buy_count = (df["side"] == "buy").sum()
 sell_count = (df["side"] == "sell").sum()
@@ -43,7 +37,6 @@ c4.metric("Gross P&L (sells − buys)", f"${gross_pnl:,.2f}")
 
 st.divider()
 
-# ── cumulative P&L over time ──────────────────────────────────────────────────
 df_daily = (
     df.set_index("executed_at")
     .resample("D")["realized_pnl"]
@@ -71,7 +64,6 @@ fig.update_layout(
 )
 st.plotly_chart(fig, use_container_width=True)
 
-# ── volume by symbol ──────────────────────────────────────────────────────────
 vol = df.groupby("symbol")["notional"].sum().reset_index().sort_values("notional", ascending=False)
 fig2 = go.Figure(go.Bar(
     x=vol["symbol"],

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "WebFetch(domain:joshuastrading.streamlit.app)"
+    ]
+  }
+}

@@ -7,9 +7,5 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-from lib.auth import require_auth
-
-require_auth()
-
 st.title("Trading Dashboard")
 st.write("Use the sidebar to navigate.")

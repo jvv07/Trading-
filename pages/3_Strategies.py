@@ -1,16 +1,11 @@
 import streamlit as st
-from lib.auth import require_auth
-from lib.supabase_client import get_client
+from lib.supabase_client import get_client, SOLO_USER_ID
 
 st.set_page_config(page_title="Strategies", layout="wide")
-require_auth()
-
 st.title("Strategies")
 
 client = get_client()
-user_id = st.session_state.user.id
 
-# ── create strategy ───────────────────────────────────────────────────────────
 with st.expander("New Strategy", expanded=False):
     with st.form("new_strategy"):
         name = st.text_input("Name")
@@ -21,15 +16,14 @@ with st.expander("New Strategy", expanded=False):
             st.error("Name is required.")
         else:
             client.table("strategies").insert({
-                "user_id": user_id,
+                "user_id": SOLO_USER_ID,
                 "name": name,
                 "description": description,
             }).execute()
             st.success(f"Strategy '{name}' created.")
             st.rerun()
 
-# ── list strategies ───────────────────────────────────────────────────────────
-res = client.table("strategies").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+res = client.table("strategies").select("*").eq("user_id", SOLO_USER_ID).order("created_at", desc=True).execute()
 strategies = res.data or []
 
 if not strategies:

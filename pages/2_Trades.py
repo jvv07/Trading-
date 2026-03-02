@@ -1,18 +1,13 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from lib.auth import require_auth
-from lib.supabase_client import get_client
+from lib.supabase_client import get_client, SOLO_USER_ID
 
 st.set_page_config(page_title="Trades", layout="wide")
-require_auth()
-
 st.title("Trade Log")
 
 client = get_client()
-user_id = st.session_state.user.id
 
-# ── log a trade ───────────────────────────────────────────────────────────────
 with st.expander("Log a Trade", expanded=False):
     with st.form("new_trade"):
         c1, c2, c3 = st.columns(3)
@@ -25,8 +20,7 @@ with st.expander("Log a Trade", expanded=False):
         commission = c5.number_input("Commission", min_value=0.0, step=0.01)
         executed_at = c6.date_input("Date", value=datetime.today())
 
-        # strategy selector
-        strat_res = client.table("strategies").select("id, name").eq("user_id", user_id).eq("status", "active").execute()
+        strat_res = client.table("strategies").select("id, name").eq("user_id", SOLO_USER_ID).eq("status", "active").execute()
         strategies = {s["name"]: s["id"] for s in (strat_res.data or [])}
         strat_names = ["— none —"] + list(strategies.keys())
         strat_choice = st.selectbox("Strategy", strat_names)
@@ -38,7 +32,7 @@ with st.expander("Log a Trade", expanded=False):
             st.error("Symbol, price, and quantity are required.")
         else:
             payload = {
-                "user_id": user_id,
+                "user_id": SOLO_USER_ID,
                 "symbol": symbol,
                 "side": side,
                 "quantity": float(quantity),
@@ -53,8 +47,7 @@ with st.expander("Log a Trade", expanded=False):
             st.success(f"Logged {side.upper()} {quantity} {symbol} @ ${price:.2f}")
             st.rerun()
 
-# ── trade history ─────────────────────────────────────────────────────────────
-res = client.table("trades").select("*").eq("user_id", user_id).order("executed_at", desc=True).execute()
+res = client.table("trades").select("*").eq("user_id", SOLO_USER_ID).order("executed_at", desc=True).execute()
 trades = res.data or []
 
 if not trades:
