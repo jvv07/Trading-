@@ -95,7 +95,7 @@ Optional: `commission`
             else:
                 df["symbol"] = df["symbol"].str.upper().str.strip()
                 df["side"] = df["side"].str.lower().str.strip()
-                df["commission"] = df.get("commission", pd.Series(0.0, index=df.index)).fillna(0)
+                df["commission"] = df["commission"].fillna(0) if "commission" in df.columns else 0.0
                 df["date"] = pd.to_datetime(df["date"]).dt.date
 
                 st.write(f"Preview — {len(df)} trades:")

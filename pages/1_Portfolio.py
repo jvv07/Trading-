@@ -56,7 +56,7 @@ with tab1:
             "Unreal. P&L": lambda v: f"${v:,.2f}" if v else "N/A",
             "P&L %": lambda v: f"{v:.2f}%" if v else "N/A",
             "Realized P&L": "${:,.2f}",
-        }).applymap(
+        }).map(
             lambda v: "color: #00d4aa" if isinstance(v, str) and "%" in v and not v.startswith("-") else
                       "color: #ff4b4b" if isinstance(v, str) and v.startswith("-") else "",
             subset=["P&L %", "Unreal. P&L"],
@@ -108,7 +108,8 @@ with tab2:
             if isinstance(data.columns, pd.MultiIndex):
                 closes = data["Close"]
             else:
-                closes = data[["Close"]]; closes.columns = syms
+                closes = data[["Close"]]
+                closes.columns = syms + ["SPY"]
             rets = closes.pct_change().dropna()
             if "SPY" not in rets.columns:
                 return {}
@@ -144,7 +145,8 @@ with tab3:
             if isinstance(data.columns, pd.MultiIndex):
                 closes = data["Close"]
             else:
-                closes = data[["Close"]]; closes.columns = syms
+                closes = data[["Close"]]
+                closes.columns = syms
             return closes.pct_change().dropna().corr()
 
         corr = _corr(",".join(sorted(symbols)))

@@ -126,9 +126,9 @@ st.dataframe(
             "vs 52W High": lambda v: f"{v:.1f}%" if v else "N/A",
             "RSI(14)": lambda v: f"{v:.1f}" if v else "N/A",
         })
-        .applymap(lambda v: f"color: {'#00d4aa' if isinstance(v, str) and v.startswith('+') else '#ff4b4b' if isinstance(v, str) and (v.startswith('-') and v != '-') else ''}",
+        .map(lambda v: f"color: {'#00d4aa' if isinstance(v, str) and v.startswith('+') else '#ff4b4b' if isinstance(v, str) and (v.startswith('-') and v != '-') else ''}",
                   subset=["Chg", "Chg %"])
-        .applymap(_rsi_color, subset=["RSI(14)"]),
+        .map(_rsi_color, subset=["RSI(14)"]),
     use_container_width=True, hide_index=True,
 )
 

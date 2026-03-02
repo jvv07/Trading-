@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(git:*)",
-      "WebFetch(domain:joshuastrading.streamlit.app)"
+      "WebFetch(domain:joshuastrading.streamlit.app)",
+      "Bash(do python3:*)",
+      "Bash(grep:*)"
     ]
   }
 }

@@ -98,7 +98,7 @@ with col_left:
         st.dataframe(
             snap_df.style
                 .format({"Last": "{:.2f}", "Change": "{:+.2f}", "% Change": "{:+.2f}%"})
-                .applymap(lambda v: f"color: {'#00d4aa' if v >= 0 else '#ff4b4b'}" if isinstance(v, float) else "",
+                .map(lambda v: f"color: {'#00d4aa' if v >= 0 else '#ff4b4b'}" if isinstance(v, float) else "",
                           subset=["Change", "% Change"]),
             use_container_width=True, hide_index=True,
         )

@@ -142,7 +142,7 @@ with res_col:
                 trade_df.style.format({
                     "Entry Price": "${:.4g}", "Exit Price": "${:.4g}",
                     "Return %": "{:+.2f}%", "Pnl": "${:.4g}",
-                }).applymap(
+                }).map(
                     lambda v: "color: #00d4aa" if isinstance(v, str) and "+" in v else
                                "color: #ff4b4b" if isinstance(v, str) and v.startswith("-") else "",
                     subset=["Return %"] if "Return %" in trade_df.columns else [],

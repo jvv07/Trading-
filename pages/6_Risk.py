@@ -23,7 +23,7 @@ positions["market_value"] = positions.apply(
     lambda r: r["quantity"] * r["last_price"] if r["last_price"] else r["cost_basis"], axis=1
 )
 total_mv = positions["market_value"].sum()
-positions["weight"] = positions["market_value"] / total_mv
+positions["weight"] = positions["market_value"] / total_mv if total_mv > 0 else 0.0
 
 symbols = positions["symbol"].tolist()
 
@@ -34,7 +34,8 @@ def _hist_data(syms_key, period):
     if isinstance(data.columns, pd.MultiIndex):
         closes = data["Close"]
     else:
-        closes = data[["Close"]]; closes.columns = syms
+        closes = data[["Close"]]
+        closes.columns = syms + ["SPY"]
     return closes.pct_change().dropna()
 
 hist_returns = _hist_data(",".join(sorted(symbols)), "1y")
@@ -198,7 +199,7 @@ with tab4:
         })
 
     sdf = pd.DataFrame(scenario_rows)
-    st.dataframe(sdf.style.applymap(
+    st.dataframe(sdf.style.map(
         lambda v: "color: #00d4aa" if isinstance(v, str) and v.startswith("+") else
                   "color: #ff4b4b" if isinstance(v, str) and v.startswith("-") else "",
         subset=["Est. Portfolio Move", "Est. Dollar Impact"]

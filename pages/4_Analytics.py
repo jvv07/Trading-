@@ -6,6 +6,7 @@ from lib.portfolio import get_trades_df, compute_positions, build_equity_curve
 from lib.charts import (equity_curve, drawdown_chart, monthly_returns_heatmap,
                          rolling_sharpe_chart, return_distribution, bar_by_category)
 from lib import metrics as m
+from lib.supabase_client import get_client, SOLO_USER_ID
 
 st.set_page_config(page_title="Analytics", layout="wide")
 st.title("Analytics")
