@@ -3,7 +3,9 @@ import pandas as pd
 from datetime import date
 from lib.supabase_client import get_client, SOLO_USER_ID
 
+from lib.style import inject_css
 st.set_page_config(page_title="Journal", layout="wide")
+inject_css()
 st.title("Trading Journal")
 
 client = get_client()

@@ -5,7 +5,9 @@ from lib.portfolio import get_trades_df, compute_positions, fetch_current_prices
 from lib.charts import equity_curve, correlation_heatmap
 from lib import metrics as m
 
+from lib.style import inject_css
 st.set_page_config(page_title="Portfolio", layout="wide")
+inject_css()
 st.title("Portfolio")
 
 trades_df = get_trades_df()

@@ -6,7 +6,9 @@ from lib.backtest import run_backtest, STRATEGIES
 from lib.charts import equity_curve, drawdown_chart, monthly_returns_heatmap
 from lib.supabase_client import get_client, SOLO_USER_ID
 
+from lib.style import inject_css
 st.set_page_config(page_title="Backtester", layout="wide")
+inject_css()
 st.title("Strategy Backtester")
 st.caption("Test how a strategy would have performed on historical data.")
 

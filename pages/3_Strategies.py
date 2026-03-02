@@ -4,7 +4,9 @@ from lib.supabase_client import get_client, SOLO_USER_ID
 from lib.portfolio import get_trades_df
 from lib import metrics as m
 
+from lib.style import inject_css
 st.set_page_config(page_title="Strategies", layout="wide")
+inject_css()
 st.title("Strategies")
 
 client = get_client()

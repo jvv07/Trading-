@@ -8,7 +8,9 @@ from lib.charts import (equity_curve, drawdown_chart, monthly_returns_heatmap,
 from lib import metrics as m
 from lib.supabase_client import get_client, SOLO_USER_ID
 
+from lib.style import inject_css
 st.set_page_config(page_title="Analytics", layout="wide")
+inject_css()
 st.title("Analytics")
 
 trades_df = get_trades_df()

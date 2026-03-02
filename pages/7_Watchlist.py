@@ -5,7 +5,9 @@ from lib.supabase_client import get_client, SOLO_USER_ID
 from lib.indicators import sma, ema, rsi, macd, bollinger_bands
 from lib.charts import candlestick_with_indicators
 
+from lib.style import inject_css
 st.set_page_config(page_title="Watchlist", layout="wide")
+inject_css()
 st.title("Watchlist")
 
 client = get_client()

@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 from datetime import date, timedelta
+from lib.style import inject_css, kpi_card, section_header
 
 st.set_page_config(
     page_title="Trading Dashboard",
@@ -13,7 +14,9 @@ st.set_page_config(
 from lib.portfolio import get_trades_df, compute_positions, fetch_current_prices
 from lib.supabase_client import get_client, SOLO_USER_ID
 
+inject_css()
 st.title("Dashboard")
+st.markdown("<p style='color:#2a3a52;margin-top:-10px;font-size:.85rem'>Live portfolio overview</p>", unsafe_allow_html=True)
 
 trades_df = get_trades_df()
 
