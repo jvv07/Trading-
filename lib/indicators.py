@@ -1,0 +1,67 @@
+"""
+Technical indicators — all accept pd.Series or pd.DataFrame of OHLCV.
+All return pd.Series aligned to the input index.
+"""
+
+import pandas as pd
+import numpy as np
+
+
+def sma(close: pd.Series, period: int) -> pd.Series:
+    return close.rolling(period).mean()
+
+
+def ema(close: pd.Series, period: int) -> pd.Series:
+    return close.ewm(span=period, adjust=False).mean()
+
+
+def rsi(close: pd.Series, period: int = 14) -> pd.Series:
+    delta = close.diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    avg_gain = gain.ewm(com=period - 1, adjust=False).mean()
+    avg_loss = loss.ewm(com=period - 1, adjust=False).mean()
+    rs = avg_gain / avg_loss.replace(0, np.nan)
+    return 100 - (100 / (1 + rs))
+
+
+def macd(close: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9):
+    """Returns (macd_line, signal_line, histogram) as three Series."""
+    fast_ema = ema(close, fast)
+    slow_ema = ema(close, slow)
+    macd_line = fast_ema - slow_ema
+    signal_line = ema(macd_line, signal)
+    histogram = macd_line - signal_line
+    return macd_line, signal_line, histogram
+
+
+def bollinger_bands(close: pd.Series, period: int = 20, std_dev: float = 2.0):
+    """Returns (upper, middle, lower) as three Series."""
+    middle = sma(close, period)
+    std = close.rolling(period).std()
+    upper = middle + std_dev * std
+    lower = middle - std_dev * std
+    return upper, middle, lower
+
+
+def atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> pd.Series:
+    tr = pd.concat([
+        high - low,
+        (high - close.shift()).abs(),
+        (low - close.shift()).abs(),
+    ], axis=1).max(axis=1)
+    return tr.ewm(com=period - 1, adjust=False).mean()
+
+
+def vwap(high: pd.Series, low: pd.Series, close: pd.Series, volume: pd.Series) -> pd.Series:
+    typical = (high + low + close) / 3
+    return (typical * volume).cumsum() / volume.cumsum()
+
+
+def stochastic(high: pd.Series, low: pd.Series, close: pd.Series, k_period: int = 14, d_period: int = 3):
+    """Returns (%K, %D)."""
+    lowest_low = low.rolling(k_period).min()
+    highest_high = high.rolling(k_period).max()
+    k = 100 * (close - lowest_low) / (highest_high - lowest_low).replace(0, np.nan)
+    d = k.rolling(d_period).mean()
+    return k, d
