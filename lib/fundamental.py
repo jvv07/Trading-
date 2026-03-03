@@ -77,11 +77,28 @@ def get_fmp_key() -> str:
     return os.environ.get("FMP_API_KEY", "")
 
 
+_BAD_STRS = frozenset({"N/A", "None", "--", "", "nan", "null", "NaN", "n/a", "NA", "N/a"})
+
 def safe_get(info: dict, key: str, default=None):
+    """Get value; returns default for None or known sentinel strings."""
     try:
         v = info.get(key, default)
-        return v if v is not None else default
+        if v is None:
+            return default
+        if isinstance(v, str) and v.strip() in _BAD_STRS:
+            return default
+        return v
     except Exception:
+        return default
+
+def safe_num(val, default=None):
+    """Safely cast to float; returns default on failure/NaN."""
+    if val is None:
+        return default
+    try:
+        f = float(val)
+        return default if (f != f) else f
+    except (TypeError, ValueError):
         return default
 
 
@@ -321,6 +338,50 @@ def fetch_fmp(ticker: str) -> dict:
         pass
     return result
 
+
+
+@st.cache_data(ttl=1800)
+def fetch_analyst_data(ticker: str) -> dict:
+    """Detailed analyst data: price targets, EPS/revenue estimates, rec trend."""
+    result = {
+        "price_targets": pd.DataFrame(),
+        "eps_trend":     pd.DataFrame(),
+        "revenue_trend": pd.DataFrame(),
+        "rec_trend":     pd.DataFrame(),
+        "fmp_estimates": [],
+        "fmp_targets":   [],
+    }
+    try:
+        t = yf.Ticker(ticker)
+        for attr, key in [
+            ("analyst_price_targets", "price_targets"),
+            ("eps_trend",             "eps_trend"),
+            ("revenue_estimate",      "revenue_trend"),
+            ("recommendations_summary","rec_trend"),
+        ]:
+            try:
+                val = getattr(t, attr, None)
+                if val is not None and not (hasattr(val, "empty") and val.empty):
+                    result[key] = val
+            except Exception:
+                pass
+    except Exception:
+        pass
+    key = get_fmp_key()
+    if key:
+        import requests as _rq
+        for endpoint, rkey in [
+            (f"/analyst-estimates/{ticker}", "fmp_estimates"),
+            (f"/price-target/{ticker}",      "fmp_targets"),
+        ]:
+            try:
+                r = _rq.get(f"https://financialmodelingprep.com/api/v3{endpoint}",
+                            params={"apikey": key, "limit": 8}, timeout=6)
+                if r.ok:
+                    result[rkey] = r.json()
+            except Exception:
+                pass
+    return result
 
 # ── Financial models ──────────────────────────────────────────────────────────
 

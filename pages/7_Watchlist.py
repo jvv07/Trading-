@@ -356,7 +356,7 @@ with right_col:
     tabs = st.tabs([
         "Overview", "Valuation", "Future Growth", "Past Performance",
         "Financial Health", "Dividend", "Management", "Ownership",
-    ])
+    "Consensus"])
 
     # ── TAB 0: OVERVIEW ───────────────────────────────────────────────────────
     with tabs[0]:
@@ -1209,3 +1209,306 @@ with st.expander("Candlestick Chart", expanded=False):
                 margin=dict(l=10, r=10, t=40, b=10),
             )
             st.plotly_chart(fig_macd, use_container_width=True)
+
+
+# =============================================================================
+# Consensus Tab (auto-added by run_fix3.py)
+# =============================================================================
+try:
+    import pandas as _cpd
+    import io as _cio
+    import plotly.graph_objects as _cgo
+    from lib.fundamental import fetch_analyst_data as _fad, format_large as _fl, safe_get as _sg
+
+    with tabs[8]:
+        st.markdown("### Analyst Consensus")
+        try:
+            _ad = _fad(selected_sym)
+        except Exception:
+            _ad = {}
+
+        _pr  = _sg(info,"currentPrice") or _sg(info,"regularMarketPrice") or 0
+        _lo  = _sg(info,"targetLowPrice")
+        _hi  = _sg(info,"targetHighPrice")
+        _avg = _sg(info,"targetMeanPrice")
+        _med = _sg(info,"targetMedianPrice")
+        _nan = _sg(info,"numberOfAnalystOpinions")
+        _rec = (_sg(info,"recommendationKey") or "").replace("_"," ").title()
+
+        # KPI metrics
+        _c1,_c2,_c3,_c4 = st.columns(4)
+        _c1.metric("Target Low",  f"${float(_lo):.2f}"  if _lo  else "N/A")
+        _c2.metric("Target Mean", f"${float(_avg):.2f}" if _avg else "N/A")
+        _c3.metric("Target High", f"${float(_hi):.2f}"  if _hi  else "N/A")
+        _up = ((float(_avg)-float(_pr))/float(_pr)*100) if (_avg and _pr) else None
+        _c4.metric("Implied Upside", f"{_up:.1f}%" if _up is not None else "N/A",
+                   delta=f"{_up:.1f}%" if _up is not None else None)
+        st.caption(f"**Consensus:** {_rec or 'N/A'}  |  **Analysts:** {int(float(_nan)) if _nan else 'N/A'}")
+
+        # Target range chart
+        if _lo and _hi and _avg and _pr:
+            _fig = _cgo.Figure()
+            for _xv, _lb, _cl in [(float(_lo),"Low","#ff4b4b"),
+                                   (float(_avg),"Mean","#00d4aa"),
+                                   (float(_hi),"High","#4bffb5")]:
+                _fig.add_vline(x=_xv, line_color=_cl, line_width=2,
+                               annotation_text=f"{_lb} ${_xv:.0f}",
+                               annotation_font_color=_cl)
+            _fig.add_vrect(x0=float(_lo), x1=float(_hi),
+                           fillcolor="rgba(0,212,170,0.08)", line_width=0)
+            _fig.add_vline(x=float(_pr), line_dash="dash", line_color="#f1c14e",
+                           line_width=2, annotation_text=f"Now ${float(_pr):.0f}",
+                           annotation_font_color="#f1c14e")
+            _fig.update_layout(height=90, showlegend=False,
+                               margin=dict(t=30,b=5,l=10,r=10),
+                               yaxis=dict(visible=False), xaxis=dict(tickprefix="$"),
+                               paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+            st.plotly_chart(_fig, use_container_width=True)
+
+        st.divider()
+
+        # EPS estimates
+        _eps_t = _ad.get("eps_trend", _cpd.DataFrame())
+        if not _eps_t.empty:
+            st.markdown("**EPS Estimates**")
+            try: st.dataframe(_eps_t.style.format("{:.4f}", na_rep="—"), use_container_width=True)
+            except Exception: st.dataframe(_eps_t, use_container_width=True)
+
+        # Revenue estimates
+        _rev_t = _ad.get("revenue_trend", _cpd.DataFrame())
+        if not _rev_t.empty:
+            st.markdown("**Revenue Estimates**")
+            try: st.dataframe(_rev_t.style.format("{:,.0f}", na_rep="—"), use_container_width=True)
+            except Exception: st.dataframe(_rev_t, use_container_width=True)
+
+        # FMP estimates
+        _fmp_e = _ad.get("fmp_estimates", [])
+        if _fmp_e:
+            st.markdown("**Analyst Estimates (FMP)**")
+            _rows = [{"Date": _e.get("date",""),
+                      "EPS Low": _e.get("estimatedEpsLow"),
+                      "EPS Avg": _e.get("estimatedEpsAvg"),
+                      "EPS High": _e.get("estimatedEpsHigh"),
+                      "Rev Avg($B)": round(float(_e["estimatedRevenueAvg"])/1e9,2)
+                                    if _e.get("estimatedRevenueAvg") else None}
+                     for _e in _fmp_e[:8]]
+            if _rows: st.dataframe(_cpd.DataFrame(_rows), use_container_width=True)
+
+        # FMP price targets
+        _fmp_t = _ad.get("fmp_targets", [])
+        if _fmp_t:
+            st.markdown("**Analyst Price Targets (FMP)**")
+            _tr = [{"Date":_t.get("publishedDate","")[:10], "Analyst":_t.get("analystName",""),
+                    "Company":_t.get("analystCompany",""), "Target":_t.get("priceTarget"),
+                    "Action":_t.get("priceTargetDiff","")} for _t in _fmp_t[:15]]
+            if _tr: st.dataframe(_cpd.DataFrame(_tr), use_container_width=True)
+
+        # Rec trend
+        _rec_t = _ad.get("rec_trend", _cpd.DataFrame())
+        if not _rec_t.empty:
+            st.divider(); st.markdown("**Recommendation Trend**")
+            st.dataframe(_rec_t, use_container_width=True)
+
+        # Upgrades/Downgrades
+        try:
+            _upgr = market_d.get("upgrades", _cpd.DataFrame())
+            if not _upgr.empty:
+                st.divider(); st.markdown("**Recent Upgrades/Downgrades**")
+                _uc = [c for c in ["Firm","ToGrade","FromGrade","Action"] if c in _upgr.columns]
+                if _uc: st.dataframe(_upgr[_uc].head(25), use_container_width=True)
+        except Exception: pass
+
+        # Financial Statements viewer
+        st.divider()
+        with st.expander("View Full Financial Statements"):
+            try:
+                _stmts = st.radio("Statement", ["Income Statement","Quarterly Income",
+                    "Balance Sheet","Quarterly Balance Sheet","Cash Flow","Quarterly Cash Flow"],
+                    horizontal=True)
+                _dfmap = {"Income Statement": financials.get("annual_income",_cpd.DataFrame()),
+                          "Quarterly Income":  financials.get("quarterly_income",_cpd.DataFrame()),
+                          "Balance Sheet":     financials.get("annual_bs",_cpd.DataFrame()),
+                          "Quarterly Balance Sheet": financials.get("quarterly_bs",_cpd.DataFrame()),
+                          "Cash Flow":         financials.get("annual_cf",_cpd.DataFrame()),
+                          "Quarterly Cash Flow": financials.get("quarterly_cf",_cpd.DataFrame())}
+                _dfs = _dfmap.get(_stmts, _cpd.DataFrame())
+                if not _dfs.empty:
+                    try:
+                        st.dataframe(_dfs.style.format(
+                            lambda v: _fl(v,"") if isinstance(v,(int,float)) else str(v),
+                            na_rep="—"), use_container_width=True)
+                    except Exception:
+                        st.dataframe(_dfs, use_container_width=True)
+                else:
+                    st.info("No data available for this statement.")
+            except Exception: st.info("Financial statements unavailable.")
+
+        # Excel downloads
+        st.divider()
+        _dl1, _dl2, _dl3 = st.columns(3)
+
+        with _dl1:
+            if st.button("Download Analyst Data", key="dl_cons"):
+                try:
+                    from openpyxl import Workbook as _WB
+                    _wb = _WB(); _ws = _wb.active; _ws.title = "Price Targets"
+                    for _r in [("Metric","Value"),("Symbol",selected_sym),
+                               ("Price",float(_pr)),("Target Low",float(_lo) if _lo else None),
+                               ("Target Mean",float(_avg) if _avg else None),
+                               ("Target High",float(_hi) if _hi else None),
+                               ("Upside %",round(_up,2) if _up else None),
+                               ("Analysts",_nan),("Consensus",_rec)]:
+                        _ws.append(_r)
+                    if not _eps_t.empty:
+                        _ws2 = _wb.create_sheet("EPS Estimates")
+                        _ws2.append(["Period"]+list(_eps_t.columns))
+                        for _i,_row in _eps_t.iterrows(): _ws2.append([str(_i)]+list(_row.values))
+                    if _fmp_e:
+                        _ws3 = _wb.create_sheet("FMP Estimates")
+                        _ws3.append(["Date","EPS Low","EPS Avg","EPS High","Rev Avg"])
+                        for _e in _fmp_e[:10]:
+                            _ws3.append([_e.get("date"),_e.get("estimatedEpsLow"),
+                                         _e.get("estimatedEpsAvg"),_e.get("estimatedEpsHigh"),
+                                         _e.get("estimatedRevenueAvg")])
+                    _buf = _cio.BytesIO(); _wb.save(_buf); _buf.seek(0)
+                    st.download_button("Save",_buf.getvalue(),
+                        f"{selected_sym}_consensus.xlsx",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key="dl_cons_save")
+                except Exception as _de: st.warning(f"Excel error: {_de}")
+
+        with _dl2:
+            if st.button("Download Financial Stmts", key="dl_fs"):
+                try:
+                    from openpyxl import Workbook as _WB2
+                    _wb2 = _WB2()
+                    _sheet_pairs = [
+                        ("Income Stmt",  financials.get("annual_income",_cpd.DataFrame())),
+                        ("Qtr Income",   financials.get("quarterly_income",_cpd.DataFrame())),
+                        ("Balance Sheet",financials.get("annual_bs",_cpd.DataFrame())),
+                        ("Qtr BS",       financials.get("quarterly_bs",_cpd.DataFrame())),
+                        ("Cash Flow",    financials.get("annual_cf",_cpd.DataFrame())),
+                        ("Qtr CF",       financials.get("quarterly_cf",_cpd.DataFrame())),
+                    ]
+                    _first = True
+                    for _sn, _df in _sheet_pairs:
+                        if _df is not None and not _df.empty:
+                            _ws_f = _wb2.active if _first else _wb2.create_sheet(_sn)
+                            if _first: _ws_f.title = _sn; _first = False
+                            _ws_f.append(["Row"]+[str(c) for c in _df.columns])
+                            for _ix,_rw in _df.iterrows():
+                                _ws_f.append([str(_ix)]+[
+                                    float(v) if isinstance(v,(int,float)) and v==v else None
+                                    for v in _rw.values])
+                    _buf2 = _cio.BytesIO(); _wb2.save(_buf2); _buf2.seek(0)
+                    st.download_button("Save",_buf2.getvalue(),
+                        f"{selected_sym}_financials.xlsx",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key="dl_fs_save")
+                except Exception as _fe2: st.warning(f"Excel error: {_fe2}")
+
+        with _dl3:
+            if st.button("Download DCF Model", key="dl_dcf"):
+                try:
+                    from openpyxl import Workbook as _WBd
+                    from openpyxl.styles import Font as _Fnt, PatternFill as _Fill
+                    from lib.fundamental import (calc_wacc as _cw, calc_dcf as _cd2,
+                                                  calc_graham_number as _cgn,
+                                                  bs_row as _bsr, _first_val as _fv)
+                    _wb3 = _WBd()
+                    # Sheet 1: Assumptions
+                    _wa = _wb3.active; _wa.title = "Assumptions"
+                    _wa.column_dimensions["A"].width = 28; _wa.column_dimensions["B"].width = 18
+                    _hf = _Fnt(bold=True,color="FFFFFF"); _hfill = _Fill("solid",fgColor="1A2332")
+                    _wa.append(["Assumption","Value"]); _wa["A1"].font=_hf; _wa["B1"].font=_hf
+                    _wa["A1"].fill=_hfill; _wa["B1"].fill=_hfill
+                    _pr_v = float(_sg(info,"currentPrice") or _sg(info,"regularMarketPrice") or 0)
+                    _sh_v = float(_sg(info,"sharesOutstanding") or 0)
+                    _bt_v = float(_sg(info,"beta") or 1.0)
+                    _rg_v = float(_sg(info,"revenueGrowth") or 0.05)
+                    _wacc_v = _cw(info)
+                    _td_v = float(_sg(info,"totalDebt") or 0)
+                    _tc_v = float(_sg(info,"totalCash") or 0)
+                    for _ar in [("Symbol",selected_sym),("Current Price",_pr_v),
+                                ("Shares Outstanding",_sh_v),("Beta",_bt_v),
+                                ("Stage 1 Growth (g1)",round(_rg_v,4)),
+                                ("Stage 2 Growth (g2)",round(_rg_v*0.6,4)),
+                                ("Terminal Growth",0.025),("WACC",round(_wacc_v,4)),
+                                ("Tax Rate",0.21),("Risk-Free Rate",0.045),
+                                ("Equity Risk Premium",0.055),("Total Debt",_td_v),
+                                ("Total Cash",_tc_v)]:
+                        _wa.append(_ar)
+                    # Sheet 2: DCF (row-based, formulas in col B)
+                    _wd = _wb3.create_sheet("DCF Model")
+                    _wd.column_dimensions["A"].width = 28; _wd.column_dimensions["B"].width = 18
+                    _wd.append(["Item","Value"]); _wd["A1"].font=_hf; _wd["B1"].font=_hf
+                    _wd["A1"].fill=_hfill; _wd["B1"].fill=_hfill
+                    # Get base FCF
+                    _cf = financials.get("annual_cf",_cpd.DataFrame())
+                    _ocf_r = _bsr(_cf,"Operating Cash Flow","Cash From Operations","Total Cash From Operating Activities")
+                    _cap_r = _bsr(_cf,"Capital Expenditure","Capital Expenditures","Purchase Of Property Plant And Equipment")
+                    _ocf_b = _fv(_ocf_r) or float(_sg(info,"operatingCashflow") or 0)
+                    _cap_b = abs(_fv(_cap_r) or 0)
+                    _fcf_b = max(0, _ocf_b - _cap_b)
+                    _wd.append(["Base FCF", _fcf_b])               # row 2 → B2
+                    _wd.append(["Stage 1 Growth", "=Assumptions!B6"])  # B3
+                    _wd.append(["Stage 2 Growth", "=Assumptions!B7"])  # B4
+                    _wd.append(["WACC",           "=Assumptions!B9"])  # B5
+                    _wd.append(["Terminal Growth","=Assumptions!B8"])  # B6
+                    _wd.append(["",""])                                 # B7 spacer
+                    # FCF projections rows 8-17 (years 1-10)
+                    for _yr in range(1,11):
+                        if _yr <= 5:
+                            _f = f"=B2*(1+B3)^{_yr}"
+                        else:
+                            _f = f"=B2*(1+B3)^5*(1+B4)^{_yr-5}"
+                        _wd.append([f"FCF Year {_yr}", _f])         # rows 8-17
+                    # PV rows 18-27
+                    for _yr in range(1,11):
+                        _wd.append([f"PV Year {_yr}", f"=B{7+_yr}/(1+B5)^{_yr}"])
+                    # Summary rows 28+
+                    _wd.append(["Sum PV FCFs",     "=SUM(B18:B27)"])  # B28
+                    _wd.append(["Terminal FCF",    "=B17*(1+B6)/(B5-B6)"])  # B29
+                    _wd.append(["PV Terminal",     "=B29/(1+B5)^10"])  # B30
+                    _wd.append(["Enterprise Value","=B28+B30"])         # B31
+                    _wd.append(["Add: Cash",       _tc_v])              # B32
+                    _wd.append(["Less: Debt",      _td_v])              # B33
+                    _wd.append(["Equity Value",    "=B31+B32-B33"])     # B34
+                    _wd.append(["Shares",          _sh_v])              # B35
+                    _wd.append(["DCF Fair Value",  "=B34/B35"])         # B36
+                    _wd.append(["Current Price",   _pr_v])              # B37
+                    _wd.append(["Upside/(Downside)","=(B36-B37)/B37"])  # B38
+                    # Sheet 3: Peer Comparison
+                    _wp3 = _wb3.create_sheet("Peer Comparison")
+                    _wp3.column_dimensions["A"].width=20; _wp3.column_dimensions["B"].width=14
+                    _wp3.column_dimensions["C"].width=16; _wp3.column_dimensions["D"].width=14
+                    _wp3.append(["Metric","Value","Sector Median","vs Median"])
+                    _wp3["A1"].font=_hf; _wp3["B1"].font=_hf
+                    _wp3["A1"].fill=_hfill; _wp3["B1"].fill=_hfill
+                    _wp3["C1"].font=_hf; _wp3["D1"].font=_hf
+                    _wp3["C1"].fill=_hfill; _wp3["D1"].fill=_hfill
+                    from lib.fundamental import SECTOR_NAME_MAP as _snm, SECTOR_PE_MEDIANS as _spm, SECTOR_EV_EBITDA_MEDIANS as _sem
+                    _sec = _sg(info,"sector","")
+                    _msec = _snm.get(_sec, _sec)
+                    _pe_m = _spm.get(_msec, 20); _ev_m = _sem.get(_msec, 14)
+                    for _mn, _mv, _med in [
+                        ("P/E (TTM)",    _sg(info,"trailingPE"),      _pe_m),
+                        ("P/E (Forward)",_sg(info,"forwardPE"),       _pe_m),
+                        ("EV/EBITDA",    _sg(info,"enterpriseToEbitda"),_ev_m),
+                        ("P/B",          _sg(info,"priceToBook"),     None),
+                        ("PEG",          _sg(info,"trailingPegRatio"),None),
+                    ]:
+                        try:
+                            _v = float(_mv) if _mv else None
+                            _vs = round((_v-_med)/_med*100,1) if (_v and _med) else None
+                            _wp3.append([_mn, _v, _med, _vs])
+                        except Exception: _wp3.append([_mn, None, _med, None])
+                    _buf3 = _cio.BytesIO(); _wb3.save(_buf3); _buf3.seek(0)
+                    st.download_button("Save",_buf3.getvalue(),
+                        f"{selected_sym}_dcf_model.xlsx",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key="dl_dcf_save")
+                except Exception as _de3: st.warning(f"DCF model error: {_de3}")
+
+except Exception:
+    pass
