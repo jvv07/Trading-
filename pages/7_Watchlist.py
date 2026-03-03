@@ -219,7 +219,7 @@ except Exception:
 peers = get_sector_peers(safe_get(info, "sector", ""), selected_sym)
 
 if _load_error:
-    st.warning(f"Some data failed to load: {_load_error}")
+    st.info("Some data could not be fetched — partial results may be shown.")
 
 # ── Company Research Report ────────────────────────────────────────────────────
 
@@ -437,7 +437,7 @@ with right_col:
                         pass
 
         except Exception as e:
-            st.warning(f"Overview error: {e}")
+            st.info("Overview data could not be loaded for this symbol.")
 
     # ── TAB 1: VALUATION ──────────────────────────────────────────────────────
     with tabs[1]:
@@ -567,7 +567,7 @@ with right_col:
                     st.plotly_chart(fig_sc, use_container_width=True)
 
         except Exception as e:
-            st.warning(f"Valuation error: {e}")
+            st.info("Valuation data could not be loaded for this symbol.")
 
     # ── TAB 2: FUTURE GROWTH ──────────────────────────────────────────────────
     with tabs[2]:
@@ -649,7 +649,7 @@ with right_col:
                 st.markdown(check_item(sig["text"], sig["passed"]), unsafe_allow_html=True)
 
         except Exception as e:
-            st.warning(f"Future Growth error: {e}")
+            st.info("Growth data could not be loaded for this symbol.")
 
     # ── TAB 3: PAST PERFORMANCE ───────────────────────────────────────────────
     with tabs[3]:
@@ -752,7 +752,7 @@ with right_col:
                 st.markdown(check_item(sig["text"], sig["passed"]), unsafe_allow_html=True)
 
         except Exception as e:
-            st.warning(f"Past Performance error: {e}")
+            st.info("Historical data could not be loaded for this symbol.")
 
     # ── TAB 4: FINANCIAL HEALTH ───────────────────────────────────────────────
     with tabs[4]:
@@ -855,7 +855,7 @@ with right_col:
                 st.markdown(check_item(sig["text"], sig["passed"]), unsafe_allow_html=True)
 
         except Exception as e:
-            st.warning(f"Financial Health error: {e}")
+            st.info("Financial health data could not be loaded for this symbol.")
 
     # ── TAB 5: DIVIDEND ───────────────────────────────────────────────────────
     with tabs[5]:
@@ -939,7 +939,7 @@ with right_col:
                 st.markdown(check_item(sig["text"], sig["passed"]), unsafe_allow_html=True)
 
         except Exception as e:
-            st.warning(f"Dividend error: {e}")
+            st.info("Dividend data could not be loaded for this symbol.")
 
     # ── TAB 6: MANAGEMENT ─────────────────────────────────────────────────────
     with tabs[6]:
@@ -1069,7 +1069,7 @@ with right_col:
                     pass
 
         except Exception as e:
-            st.warning(f"Management error: {e}")
+            st.info("Management data could not be loaded for this symbol.")
 
     # ── TAB 7: OWNERSHIP ──────────────────────────────────────────────────────
     with tabs[7]:
@@ -1161,7 +1161,7 @@ with right_col:
                             unsafe_allow_html=True)
 
         except Exception as e:
-            st.warning(f"Ownership error: {e}")
+            st.info("Ownership data could not be loaded for this symbol.")
 
 # ── Candlestick (legacy) in expander ─────────────────────────────────────────
 

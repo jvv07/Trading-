@@ -163,9 +163,39 @@ def get_sector_peers(sector: str, current_ticker: str) -> list:
 @st.cache_data(ttl=3600)
 def fetch_info(ticker: str) -> dict:
     try:
-        return yf.Ticker(ticker).info or {}
+        t = yf.Ticker(ticker)
+        info = t.info or {}
+        # Supplement with fast_info for critical fields often missing on rate-limit
+        try:
+            fi = t.fast_info
+            if not info.get("currentPrice") and not info.get("regularMarketPrice"):
+                info["currentPrice"] = getattr(fi, "last_price", None)
+            if not info.get("previousClose"):
+                info["previousClose"] = getattr(fi, "previous_close", None)
+            if not info.get("marketCap"):
+                info["marketCap"] = getattr(fi, "market_cap", None)
+            if not info.get("fiftyTwoWeekHigh"):
+                info["fiftyTwoWeekHigh"] = getattr(fi, "year_high", None)
+            if not info.get("fiftyTwoWeekLow"):
+                info["fiftyTwoWeekLow"] = getattr(fi, "year_low", None)
+            if not info.get("sharesOutstanding"):
+                info["sharesOutstanding"] = getattr(fi, "shares", None)
+        except Exception:
+            pass
+        return info
     except Exception:
-        return {}
+        try:
+            fi = yf.Ticker(ticker).fast_info
+            return {
+                "currentPrice":      getattr(fi, "last_price", None),
+                "previousClose":     getattr(fi, "previous_close", None),
+                "marketCap":         getattr(fi, "market_cap", None),
+                "fiftyTwoWeekHigh":  getattr(fi, "year_high", None),
+                "fiftyTwoWeekLow":   getattr(fi, "year_low", None),
+                "sharesOutstanding": getattr(fi, "shares", None),
+            }
+        except Exception:
+            return {}
 
 
 @st.cache_data(ttl=3600)
