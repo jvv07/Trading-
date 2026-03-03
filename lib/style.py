@@ -132,8 +132,14 @@ code, pre, kbd { font-family: 'JetBrains Mono', monospace !important; }
 /* ── Chrome removal ── */
 #MainMenu { visibility: hidden !important; }
 footer    { visibility: hidden !important; }
-[data-testid="stHeader"]     { display: none !important; }
-[data-testid="stDecoration"] { display: none !important; }
+/* Keep header present so sidebar toggle stays accessible when sidebar is closed */
+[data-testid="stHeader"] {
+    background: #080c14 !important;
+    border-bottom: 1px solid #131c2e !important;
+}
+/* Hide decorative/status chrome inside the header */
+[data-testid="stToolbar"]      { display: none !important; }
+[data-testid="stDecoration"]   { display: none !important; }
 [data-testid="stStatusWidget"] { display: none !important; }
 
 /* ── App background ── */
@@ -343,3 +349,132 @@ hr { border: none !important; border-top: 1px solid #131c2e !important; margin: 
 .stAlert [data-testid="stMarkdownContainer"] p { color: inherit !important; }
 </style>
 """
+
+
+# ── Research report HTML components ──────────────────────────────────────────
+
+def company_card_header(
+    ticker: str, name: str, sector: str, industry: str,
+    employees, market_cap_str: str,
+    price, change_pct, accent: str = "#00d4aa",
+) -> str:
+    chg_color = "#00d4aa" if (change_pct or 0) >= 0 else "#ff4b4b"
+    arrow     = "▲" if (change_pct or 0) >= 0 else "▼"
+    emp_str   = f"{int(employees):,}" if employees else "N/A"
+    chg_str   = f"{abs(change_pct):.2f}%" if change_pct is not None else "N/A"
+    price_str = f"${float(price):.2f}" if price else "N/A"
+    return f"""
+<div style="
+    background:linear-gradient(135deg,#0d1422 0%,#0a1020 100%);
+    border:1px solid #1a2332;border-radius:16px;padding:20px 22px;
+    position:relative;overflow:hidden;margin-bottom:16px;
+">
+  <div style="position:absolute;top:0;left:0;right:0;height:3px;
+              background:linear-gradient(90deg,{accent},transparent)"></div>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+    <div>
+      <div style="font-size:1.6rem;font-weight:900;color:#e2e8f0;
+                  letter-spacing:-.03em;line-height:1">{ticker}</div>
+      <div style="font-size:.82rem;color:#8892a4;margin-top:4px;
+                  max-width:220px;line-height:1.3">{name}</div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div style="font-size:1.5rem;font-weight:700;color:#e2e8f0">{price_str}</div>
+      <div style="font-size:.82rem;font-weight:600;color:{chg_color}">{arrow} {chg_str}</div>
+    </div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
+    <span style="background:{accent}18;color:{accent};border:1px solid {accent}30;
+                 border-radius:12px;padding:3px 10px;font-size:.7rem;font-weight:600">{sector}</span>
+    <span style="background:#1a2332;color:#8892a4;border:1px solid #2a3a52;
+                 border-radius:12px;padding:3px 10px;font-size:.7rem">{industry}</span>
+  </div>
+  <div style="display:flex;gap:16px;margin-top:12px;color:#4a5a72;font-size:.72rem">
+    <span>Mkt Cap <strong style="color:#c8d0e0">{market_cap_str}</strong></span>
+    <span>Employees <strong style="color:#c8d0e0">{emp_str}</strong></span>
+  </div>
+</div>"""
+
+
+def score_bar(label: str, score: float, max_score: float = 6.0, color: str = None) -> str:
+    pct = min(100.0, max(0.0, (score / max_score) * 100))
+    if color is None:
+        color = "#ff4b4b" if score < 2 else "#f1c14e" if score < 3.5 else "#00d4aa"
+    return f"""
+<div style="margin:6px 0">
+  <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+    <span style="font-size:.75rem;font-weight:600;color:#8892a4;
+                 text-transform:uppercase;letter-spacing:.06em">{label}</span>
+    <span style="font-size:.75rem;font-weight:700;color:{color}">{score:.1f}/{max_score:.0f}</span>
+  </div>
+  <div style="background:#1a2332;border-radius:6px;height:7px;overflow:hidden">
+    <div style="width:{pct:.1f}%;height:100%;
+                background:linear-gradient(90deg,{color},{color}aa);
+                border-radius:6px;transition:width .4s ease"></div>
+  </div>
+</div>"""
+
+
+def check_item(text: str, passed, detail: str = "") -> str:
+    if passed is True:
+        icon, color = "✓", "#00d4aa"
+    elif passed is False:
+        icon, color = "✗", "#ff4b4b"
+    else:
+        icon, color = "—", "#4a5a72"
+    det = (f'<span style="color:#4a5a72;font-size:.7rem;margin-left:6px">{detail}</span>'
+           if detail else "")
+    return f"""
+<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;
+            border-bottom:1px solid #0d1422">
+  <span style="color:{color};font-weight:700;font-size:.85rem;flex-shrink:0;
+               width:16px;text-align:center">{icon}</span>
+  <span style="color:#8892a4;font-size:.8rem;line-height:1.4">{text}{det}</span>
+</div>"""
+
+
+def analyst_badge(recommendation_key: str) -> str:
+    cfg = {
+        "strong_buy":  ("#00d4aa", "#003322", "Strong Buy"),
+        "buy":         ("#00b894", "#002a1e", "Buy"),
+        "hold":        ("#f1c14e", "#2a2000", "Hold"),
+        "sell":        ("#e17055", "#2a1000", "Sell"),
+        "strong_sell": ("#ff4b4b", "#2a0010", "Strong Sell"),
+    }
+    color, bg, label = cfg.get(recommendation_key, ("#4a5a72", "#1a2332", "N/A"))
+    return f"""<span style="
+        background:{bg};color:{color};border:1px solid {color}40;
+        border-radius:8px;padding:4px 14px;font-size:.8rem;font-weight:700;
+        letter-spacing:.04em;white-space:nowrap">{label}</span>"""
+
+
+def valuation_model_card(
+    model_name: str, fair_value, current_price,
+    upside_pct, methodology_note: str, accent: str = "#00d4aa",
+) -> str:
+    if fair_value is None or current_price is None:
+        return f"""
+<div style="background:#0d1422;border:1px solid #1a2332;border-radius:12px;
+            padding:16px 18px;text-align:center;height:100%">
+  <div style="color:#4a5a72;font-size:.7rem;font-weight:700;
+              text-transform:uppercase;letter-spacing:.08em">{model_name}</div>
+  <div style="color:#2a3a52;font-size:1.4rem;font-weight:700;margin:8px 0">N/A</div>
+  <div style="color:#4a5a72;font-size:.7rem">{methodology_note}</div>
+</div>"""
+    up_color = "#00d4aa" if (upside_pct or 0) >= 0 else "#ff4b4b"
+    up_arrow = "▲" if (upside_pct or 0) >= 0 else "▼"
+    up_str   = f"{up_arrow} {abs(upside_pct):.1f}%" if upside_pct is not None else "N/A"
+    fv_str   = f"${float(fair_value):.2f}"
+    return f"""
+<div style="background:linear-gradient(135deg,#0d1422,#0a1020);
+            border:1px solid #1a2332;border-radius:12px;padding:16px 18px;
+            position:relative;overflow:hidden;height:100%">
+  <div style="position:absolute;top:0;left:0;right:0;height:2px;
+              background:linear-gradient(90deg,{accent}80,transparent)"></div>
+  <div style="color:#4a5a72;font-size:.68rem;font-weight:700;
+              text-transform:uppercase;letter-spacing:.08em">{model_name}</div>
+  <div style="color:#e2e8f0;font-size:1.5rem;font-weight:800;
+              letter-spacing:-.02em;margin:6px 0 2px">{fv_str}</div>
+  <div style="color:{up_color};font-size:.88rem;font-weight:700">{up_str}</div>
+  <div style="color:#4a5a72;font-size:.68rem;margin-top:8px;line-height:1.3">{methodology_note}</div>
+</div>"""
