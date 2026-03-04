@@ -9,26 +9,32 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from lib import metrics as m
 
-TEAL   = "#00e5a3"
+TEAL   = "#00d4aa"
 BLUE   = "#4a9eff"
-RED    = "#ea3943"
+RED    = "#f04f5a"
 YELLOW = "#f0b429"
 PURPLE = "#9b72f8"
-GREEN  = "#16c784"
-GRID   = "rgba(255,255,255,0.06)"
+GREEN  = "#00d4aa"
+GRID   = "#1e2640"
 BG     = "rgba(0,0,0,0)"
-FONT   = "#eef2f7"
+FONT   = "#8892a4"
+FONT1  = "#e2e8f0"
 
-PALETTE = [TEAL, BLUE, YELLOW, PURPLE, "#f17c4e", GREEN, "#f14e9a"]
+PALETTE = [TEAL, BLUE, YELLOW, PURPLE, "#f17c4e", "#4a9eff", RED]
+
+_axis = dict(gridcolor=GRID, showgrid=True, color=FONT,
+             zerolinecolor=GRID, linecolor=GRID, tickfont=dict(color=FONT, size=11))
 
 _layout = dict(
     paper_bgcolor=BG,
     plot_bgcolor=BG,
-    font_color=FONT,
-    xaxis=dict(gridcolor=GRID, showgrid=True, color=FONT, zerolinecolor=GRID),
-    yaxis=dict(gridcolor=GRID, showgrid=True, color=FONT, zerolinecolor=GRID),
-    legend=dict(bgcolor="rgba(11,13,18,0.7)", bordercolor=GRID, font=dict(color=FONT)),
+    font=dict(family="Inter, sans-serif", color=FONT, size=12),
+    xaxis=_axis,
+    yaxis=_axis,
+    legend=dict(bgcolor="rgba(22,27,46,0.8)", bordercolor=GRID,
+                font=dict(color=FONT, size=11)),
     margin=dict(l=10, r=10, t=40, b=10),
+    title=dict(font=dict(color=FONT1, size=14, family="Inter, sans-serif")),
 )
 
 
@@ -81,7 +87,7 @@ def monthly_returns_heatmap(returns: pd.Series, title: str = "Monthly Returns") 
         y=[str(y) for y in pivot.index],
         text=text,
         texttemplate="%{text}",
-        colorscale=[[0, RED], [0.5, "#131928"], [1, TEAL]],
+        colorscale=[[0, RED], [0.5, "#161b2e"], [1, TEAL]],
         zmid=0,
         showscale=True,
         colorbar=dict(ticksuffix="%"),
@@ -164,15 +170,18 @@ def candlestick_with_indicators(df: pd.DataFrame, indicators: dict = None, title
                               marker_color=colors, opacity=0.6), row=3, col=1)
 
     fig.update_layout(
-        paper_bgcolor=BG, plot_bgcolor=BG, font_color=FONT,
+        paper_bgcolor=BG, plot_bgcolor=BG,
+        font=dict(family="Inter, sans-serif", color=FONT, size=11),
         xaxis_rangeslider_visible=False,
         showlegend=True,
-        legend=dict(bgcolor="rgba(0,0,0,0.3)"),
+        legend=dict(bgcolor="rgba(22,27,46,0.8)", bordercolor=GRID, font=dict(color=FONT)),
         margin=dict(l=10, r=10, t=40, b=10),
     )
     for i in range(1, rows + 1):
-        fig.update_xaxes(gridcolor=GRID, row=i, col=1)
-        fig.update_yaxes(gridcolor=GRID, row=i, col=1)
+        fig.update_xaxes(gridcolor=GRID, color=FONT, linecolor=GRID,
+                         tickfont=dict(color=FONT, size=11), row=i, col=1)
+        fig.update_yaxes(gridcolor=GRID, color=FONT, linecolor=GRID,
+                         tickfont=dict(color=FONT, size=11), row=i, col=1)
     return fig
 
 
@@ -183,7 +192,7 @@ def correlation_heatmap(corr_matrix: pd.DataFrame, title: str = "Correlation Mat
     fig = go.Figure(go.Heatmap(
         z=z, x=labels, y=labels,
         text=text, texttemplate="%{text}",
-        colorscale=[[0, RED], [0.5, "#131928"], [1, TEAL]],
+        colorscale=[[0, RED], [0.5, "#161b2e"], [1, TEAL]],
         zmin=-1, zmax=1, zmid=0,
         showscale=True,
     ))
