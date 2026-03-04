@@ -9,24 +9,25 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from lib import metrics as m
 
-TEAL = "#00d4aa"
-BLUE = "#4e9af1"
-RED = "#ff4b4b"
-YELLOW = "#f1c14e"
-PURPLE = "#b44ef1"
-GRID = "#2a2f3e"
-BG = "rgba(0,0,0,0)"
-FONT = "#fafafa"
+TEAL   = "#00e5a3"
+BLUE   = "#4a9eff"
+RED    = "#ea3943"
+YELLOW = "#f0b429"
+PURPLE = "#9b72f8"
+GREEN  = "#16c784"
+GRID   = "rgba(255,255,255,0.06)"
+BG     = "rgba(0,0,0,0)"
+FONT   = "#eef2f7"
 
-PALETTE = [TEAL, BLUE, YELLOW, PURPLE, "#f17c4e", "#4ef1c1", "#f14e9a"]
+PALETTE = [TEAL, BLUE, YELLOW, PURPLE, "#f17c4e", GREEN, "#f14e9a"]
 
 _layout = dict(
     paper_bgcolor=BG,
     plot_bgcolor=BG,
     font_color=FONT,
-    xaxis=dict(gridcolor=GRID, showgrid=True),
-    yaxis=dict(gridcolor=GRID, showgrid=True),
-    legend=dict(bgcolor="rgba(0,0,0,0.3)", bordercolor=GRID),
+    xaxis=dict(gridcolor=GRID, showgrid=True, color=FONT, zerolinecolor=GRID),
+    yaxis=dict(gridcolor=GRID, showgrid=True, color=FONT, zerolinecolor=GRID),
+    legend=dict(bgcolor="rgba(11,13,18,0.7)", bordercolor=GRID, font=dict(color=FONT)),
     margin=dict(l=10, r=10, t=40, b=10),
 )
 
@@ -80,7 +81,7 @@ def monthly_returns_heatmap(returns: pd.Series, title: str = "Monthly Returns") 
         y=[str(y) for y in pivot.index],
         text=text,
         texttemplate="%{text}",
-        colorscale=[[0, RED], [0.5, "#1a1f2e"], [1, TEAL]],
+        colorscale=[[0, RED], [0.5, "#131928"], [1, TEAL]],
         zmid=0,
         showscale=True,
         colorbar=dict(ticksuffix="%"),
@@ -182,7 +183,7 @@ def correlation_heatmap(corr_matrix: pd.DataFrame, title: str = "Correlation Mat
     fig = go.Figure(go.Heatmap(
         z=z, x=labels, y=labels,
         text=text, texttemplate="%{text}",
-        colorscale=[[0, RED], [0.5, "#1a1f2e"], [1, TEAL]],
+        colorscale=[[0, RED], [0.5, "#131928"], [1, TEAL]],
         zmin=-1, zmax=1, zmid=0,
         showscale=True,
     ))

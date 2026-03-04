@@ -27,34 +27,31 @@ st.markdown(
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Sidebar config
+# Inline config panel (sidebar removed)
 # ─────────────────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("### Scanner Config")
-    universe_choice = st.selectbox("Universe", list(UNIVERSE_OPTIONS.keys()), index=0)
-    custom_input = st.text_input("Custom tickers (comma-sep, overrides universe)",
-                                  placeholder="AAPL, MSFT, TSLA")
-
-    st.divider()
-    strategy_name = st.selectbox("Strategy", list(STRATEGIES.keys()))
-    strat_meta = STRATEGIES[strategy_name]
-    st.caption(strat_meta["description"])
-
-    params = {}
-    for key, cfg in strat_meta["params"].items():
-        if cfg["type"] == "int":
-            params[key] = st.slider(cfg["label"], cfg["min"], cfg["max"], cfg["default"])
-        else:
-            params[key] = st.slider(cfg["label"], float(cfg["min"]), float(cfg["max"]),
-                                     float(cfg["default"]), step=0.1)
-
-    st.divider()
-    lookback = st.selectbox("Lookback", ["3 Months","6 Months","1 Year","2 Years"], index=1)
-    period_map = {"3 Months": "3mo", "6 Months": "6mo", "1 Year": "1y", "2 Years": "2y"}
-    period = period_map[lookback]
-
-    min_signal_only = st.checkbox("Show active signals only", value=False)
-    run_btn = st.button("▶  Run Scanner", type="primary", use_container_width=True)
+with st.expander("Scanner Configuration", expanded=True):
+    _c1, _c2, _c3 = st.columns([2, 2, 1])
+    with _c1:
+        universe_choice = st.selectbox("Universe", list(UNIVERSE_OPTIONS.keys()), index=0)
+        custom_input = st.text_input("Custom tickers (comma-sep, overrides universe)",
+                                      placeholder="AAPL, MSFT, TSLA")
+        strategy_name = st.selectbox("Strategy", list(STRATEGIES.keys()))
+        strat_meta = STRATEGIES[strategy_name]
+        st.caption(strat_meta["description"])
+    with _c2:
+        params = {}
+        for key, cfg in strat_meta["params"].items():
+            if cfg["type"] == "int":
+                params[key] = st.slider(cfg["label"], cfg["min"], cfg["max"], cfg["default"])
+            else:
+                params[key] = st.slider(cfg["label"], float(cfg["min"]), float(cfg["max"]),
+                                         float(cfg["default"]), step=0.1)
+    with _c3:
+        lookback = st.selectbox("Lookback", ["3 Months","6 Months","1 Year","2 Years"], index=1)
+        period_map = {"3 Months": "3mo", "6 Months": "6mo", "1 Year": "1y", "2 Years": "2y"}
+        period = period_map[lookback]
+        min_signal_only = st.checkbox("Active signals only", value=False)
+        run_btn = st.button("Run Scanner", type="primary", use_container_width=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

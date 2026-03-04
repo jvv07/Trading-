@@ -8,60 +8,54 @@ from lib.nav import render_nav
 from lib.fundamental import (get_fmp_key, safe_get, format_large,
     SECTOR_PE_MEDIANS, SECTOR_EV_EBITDA_MEDIANS, SECTOR_NAME_MAP)
 
+st.set_page_config(page_title="Screener", layout="wide", initial_sidebar_state="collapsed")
 inject_css()
 render_nav("Screener")
 st.title("Stock Screener")
 st.caption("Find stocks with 15+ financial filters. FMP API key unlocks global markets.")
 
-with st.sidebar:
-    st.markdown("### Filters")
-    fmp_key = get_fmp_key()
-    _uni = ["FMP Global Screener (API)"] if fmp_key else []
-    _uni.append("S&P 100 Scan (yfinance)")
-    universe = st.selectbox("Universe", _uni)
+fmp_key = get_fmp_key()
 
-    exchange = st.selectbox("Exchange", ["Any","NYSE","NASDAQ","AMEX"]) if "FMP" in universe else "Any"
-    _secs = ["Any"] + sorted(set(SECTOR_PE_MEDIANS.keys()))
-    sector_f = st.selectbox("Sector", _secs)
-
-    _mc = {"Any":(None,None),"Mega Cap (>$200B)":(200e9,None),"Large Cap ($10B-$200B)":(10e9,200e9),
-           "Mid Cap ($2B-$10B)":(2e9,10e9),"Small Cap (<$2B)":(None,2e9)}
-    mc_sel = st.selectbox("Market Cap", list(_mc.keys()))
-    mc_min, mc_max = _mc[mc_sel]
-
-    st.markdown("---")
-    st.markdown("**Valuation**")
-    max_pe  = st.slider("Max P/E",          0,150,80)
-    max_fpe = st.slider("Max Forward P/E",  0,100,60)
-    max_pb  = st.slider("Max P/B",          0.0,30.0,15.0,0.5)
-    max_ev  = st.slider("Max EV/EBITDA",    0,100,60)
-
-    st.markdown("**Growth**")
-    min_rg  = st.slider("Min Revenue Growth %",  -50,100,0)
-    min_eg  = st.slider("Min Earnings Growth %", -50,100,0)
-
-    st.markdown("**Profitability**")
-    min_roe = st.slider("Min ROE %",        -50,100,0)
-    min_mgn = st.slider("Min Net Margin %", -50, 50,0)
-
-    st.markdown("**Financial Health**")
-    max_de  = st.slider("Max Debt/Equity",   0.0,15.0,10.0,0.5)
-    min_cr  = st.slider("Min Current Ratio", 0.0, 5.0, 0.0,0.1)
-
-    st.markdown("**Dividend & Risk**")
-    min_dy  = st.slider("Min Dividend Yield %",      0.0,15.0,0.0,0.1)
-    min_up  = st.slider("Min Analyst Upside %",     -50,100,0)
-    max_bt  = st.slider("Max Beta",                  0.0, 5.0,5.0,0.1)
-
-    rat_f = st.multiselect("Analyst Rating",
-        ["Strong Buy","Buy","Hold","Sell","Strong Sell"], default=[])
-    val_st = st.selectbox("Valuation vs Sector P/E",
-        ["Any","Potentially Undervalued","Potentially Overvalued"])
-
-    run_btn = st.button("Run Screen", type="primary", use_container_width=True)
+with st.expander("Screen Filters", expanded=True):
+    _r1c1, _r1c2, _r1c3, _r1c4 = st.columns(4)
+    with _r1c1:
+        _uni = ["FMP Global Screener (API)"] if fmp_key else []
+        _uni.append("S&P 100 Scan (yfinance)")
+        universe = st.selectbox("Universe", _uni)
+        exchange = st.selectbox("Exchange", ["Any","NYSE","NASDAQ","AMEX"]) if "FMP" in universe else "Any"
+        _secs = ["Any"] + sorted(set(SECTOR_PE_MEDIANS.keys()))
+        sector_f = st.selectbox("Sector", _secs)
+        _mc = {"Any":(None,None),"Mega Cap (>$200B)":(200e9,None),"Large Cap ($10B-$200B)":(10e9,200e9),
+               "Mid Cap ($2B-$10B)":(2e9,10e9),"Small Cap (<$2B)":(None,2e9)}
+        mc_sel = st.selectbox("Market Cap", list(_mc.keys()))
+        mc_min, mc_max = _mc[mc_sel]
+    with _r1c2:
+        st.markdown("**Valuation**")
+        max_pe  = st.slider("Max P/E",         0,150,80)
+        max_fpe = st.slider("Max Forward P/E", 0,100,60)
+        max_pb  = st.slider("Max P/B",         0.0,30.0,15.0,0.5)
+        max_ev  = st.slider("Max EV/EBITDA",   0,100,60)
+    with _r1c3:
+        st.markdown("**Growth & Profitability**")
+        min_rg  = st.slider("Min Revenue Growth %",  -50,100,0)
+        min_eg  = st.slider("Min Earnings Growth %", -50,100,0)
+        min_roe = st.slider("Min ROE %",             -50,100,0)
+        min_mgn = st.slider("Min Net Margin %",      -50, 50,0)
+    with _r1c4:
+        st.markdown("**Health & Risk**")
+        max_de  = st.slider("Max Debt/Equity",      0.0,15.0,10.0,0.5)
+        min_cr  = st.slider("Min Current Ratio",    0.0, 5.0, 0.0,0.1)
+        min_dy  = st.slider("Min Dividend Yield %", 0.0,15.0,0.0,0.1)
+        min_up  = st.slider("Min Analyst Upside %",-50,100,0)
+        max_bt  = st.slider("Max Beta",             0.0, 5.0,5.0,0.1)
+        rat_f   = st.multiselect("Analyst Rating",
+            ["Strong Buy","Buy","Hold","Sell","Strong Sell"], default=[])
+        val_st  = st.selectbox("Valuation vs Sector P/E",
+            ["Any","Potentially Undervalued","Potentially Overvalued"])
+    run_btn = st.button("Run Screen", type="primary")
 
 if not run_btn:
-    st.info("Set filters in the sidebar then click **Run Screen**.")
+    st.info("Configure filters above then click Run Screen.")
     st.markdown("""
 **FMP API key** → global screener (thousands of stocks, real-time)
 **No key** → S&P 100 via yfinance (~60 seconds)

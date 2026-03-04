@@ -50,16 +50,14 @@ upnl_pct = (total_unrealized / (total_market_value - total_unrealized) * 100
 
 st.html(f"""
 <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:28px">
-  {kpi_card("Portfolio Value", f"${total_market_value:,.2f}", icon="💼")}
+  {kpi_card("Portfolio Value", f"${total_market_value:,.2f}")}
   {kpi_card("Unrealized P&L", f"${total_unrealized:,.2f}",
             delta=f"{upnl_pct:+.2f}%",
-            positive=(total_unrealized >= 0),
-            icon="📈" if total_unrealized >= 0 else "📉")}
+            positive=(total_unrealized >= 0))}
   {kpi_card("Realized P&L", f"${total_realized:,.2f}",
-            positive=(total_realized >= 0),
-            icon="✅" if total_realized >= 0 else "⚠️")}
-  {kpi_card("Open Positions", str(open_count), icon="🎯")}
-  {kpi_card("Total Trades", str(trade_count), icon="🔄")}
+            positive=(total_realized >= 0))}
+  {kpi_card("Open Positions", str(open_count))}
+  {kpi_card("Total Trades", str(trade_count))}
 </div>
 """)
 

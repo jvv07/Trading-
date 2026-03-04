@@ -37,33 +37,36 @@ def load_watchlist():
     return res.data or []
 
 
-with st.sidebar:
-    st.subheader("Add Symbol")
-    with st.form("add_watch"):
-        new_sym   = st.text_input("Ticker").upper().strip()
-        new_notes = st.text_input("Notes (optional)")
-        add_btn   = st.form_submit_button("Add", use_container_width=True)
-    if add_btn and new_sym:
-        try:
-            client.table("watchlist").insert({
-                "user_id": SOLO_USER_ID,
-                "symbol":  new_sym,
-                "notes":   new_notes or None,
-            }).execute()
-            st.rerun()
-        except Exception:
-            st.warning(f"{new_sym} already in watchlist.")
+# ── Inline controls (sidebar removed) ────────────────────────────────────────
+_ctrl_col, _add_col = st.columns([3, 1])
+with _add_col:
+    with st.expander("Add Symbol"):
+        with st.form("add_watch"):
+            new_sym   = st.text_input("Ticker").upper().strip()
+            new_notes = st.text_input("Notes (optional)")
+            add_btn   = st.form_submit_button("Add", use_container_width=True)
+        if add_btn and new_sym:
+            try:
+                client.table("watchlist").insert({
+                    "user_id": SOLO_USER_ID,
+                    "symbol":  new_sym,
+                    "notes":   new_notes or None,
+                }).execute()
+                st.rerun()
+            except Exception:
+                st.warning(f"{new_sym} already in watchlist.")
 
-    st.divider()
-    st.caption("Chart overlay (used in candlestick view)")
-    chart_period = st.selectbox("Period", ["1mo","3mo","6mo","1y","2y","5y"], index=3)
-    show_sma20   = st.checkbox("SMA 20",  value=True)
-    show_sma50   = st.checkbox("SMA 50",  value=True)
-    show_sma200  = st.checkbox("SMA 200", value=False)
-    show_ema     = st.checkbox("EMA 20",  value=False)
-    show_bb      = st.checkbox("Bollinger Bands", value=False)
-    show_rsi     = st.checkbox("RSI (14)", value=True)
-    show_macd    = st.checkbox("MACD",    value=False)
+with _ctrl_col:
+    with st.expander("Chart Settings"):
+        _cc1, _cc2, _cc3, _cc4 = st.columns(4)
+        chart_period = _cc1.selectbox("Period", ["1mo","3mo","6mo","1y","2y","5y"], index=3)
+        show_sma20  = _cc2.checkbox("SMA 20",  value=True)
+        show_sma50  = _cc2.checkbox("SMA 50",  value=True)
+        show_sma200 = _cc2.checkbox("SMA 200", value=False)
+        show_ema    = _cc3.checkbox("EMA 20",  value=False)
+        show_bb     = _cc3.checkbox("Bollinger Bands", value=False)
+        show_rsi    = _cc4.checkbox("RSI (14)", value=True)
+        show_macd   = _cc4.checkbox("MACD",    value=False)
 
 watchlist = load_watchlist()
 
