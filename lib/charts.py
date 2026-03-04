@@ -15,10 +15,10 @@ RED    = "#f04f5a"
 YELLOW = "#f0b429"
 PURPLE = "#9b72f8"
 GREEN  = "#00d4aa"
-GRID   = "#1e2640"
+GRID   = "#252a38"
 BG     = "rgba(0,0,0,0)"
 FONT   = "#8892a4"
-FONT1  = "#e2e8f0"
+FONT1  = "#f0f4f8"
 
 PALETTE = [TEAL, BLUE, YELLOW, PURPLE, "#f17c4e", "#4a9eff", RED]
 
@@ -31,7 +31,7 @@ _layout = dict(
     font=dict(family="Inter, sans-serif", color=FONT, size=12),
     xaxis=_axis,
     yaxis=_axis,
-    legend=dict(bgcolor="rgba(22,27,46,0.8)", bordercolor=GRID,
+    legend=dict(bgcolor="rgba(26,29,39,0.8)", bordercolor=GRID,
                 font=dict(color=FONT, size=11)),
     margin=dict(l=10, r=10, t=40, b=10),
     title=dict(font=dict(color=FONT1, size=14, family="Inter, sans-serif")),
@@ -87,7 +87,7 @@ def monthly_returns_heatmap(returns: pd.Series, title: str = "Monthly Returns") 
         y=[str(y) for y in pivot.index],
         text=text,
         texttemplate="%{text}",
-        colorscale=[[0, RED], [0.5, "#161b2e"], [1, TEAL]],
+        colorscale=[[0, RED], [0.5, "#1a1d27"], [1, TEAL]],
         zmid=0,
         showscale=True,
         colorbar=dict(ticksuffix="%"),
@@ -174,7 +174,7 @@ def candlestick_with_indicators(df: pd.DataFrame, indicators: dict = None, title
         font=dict(family="Inter, sans-serif", color=FONT, size=11),
         xaxis_rangeslider_visible=False,
         showlegend=True,
-        legend=dict(bgcolor="rgba(22,27,46,0.8)", bordercolor=GRID, font=dict(color=FONT)),
+        legend=dict(bgcolor="rgba(26,29,39,0.8)", bordercolor=GRID, font=dict(color=FONT)),
         margin=dict(l=10, r=10, t=40, b=10),
     )
     for i in range(1, rows + 1):
@@ -192,7 +192,7 @@ def correlation_heatmap(corr_matrix: pd.DataFrame, title: str = "Correlation Mat
     fig = go.Figure(go.Heatmap(
         z=z, x=labels, y=labels,
         text=text, texttemplate="%{text}",
-        colorscale=[[0, RED], [0.5, "#161b2e"], [1, TEAL]],
+        colorscale=[[0, RED], [0.5, "#1a1d27"], [1, TEAL]],
         zmin=-1, zmax=1, zmid=0,
         showscale=True,
     ))

@@ -6,14 +6,14 @@ Call inject_css() at the top of every page.
 import streamlit as st
 
 # ── Design tokens (Python mirrors of CSS vars) ─────────────────────────────
-_BG      = "#0c0e14"
-_SURFACE = "#131825"
-_BORDER  = "#1d2437"
-_TEXT1   = "#e2e8f0"
-_TEXT2   = "#6b7a99"
-_ACCENT  = "#00d4aa"
-_POS     = "#00d4aa"
-_NEG     = "#f04f5a"
+_BG      = "#12151e"
+_SURFACE = "#1a1d27"
+_BORDER  = "#252a38"
+_TEXT1   = "#f0f4f8"
+_TEXT2   = "#8892a4"
+_ACCENT  = "#4ade80"
+_POS     = "#4ade80"
+_NEG     = "#f87171"
 _SHADOW  = "0 1px 6px rgba(0,0,0,0.5)"
 _RADIUS  = "4px"
 
@@ -22,7 +22,7 @@ _CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
-:root{--bg:#0c0e14;--surface:#131825;--border:#1d2437;--text-1:#e2e8f0;--text-2:#6b7a99;--accent:#00d4aa;--pos:#00d4aa;--neg:#f04f5a;--radius:4px;--shadow:0 1px 6px rgba(0,0,0,0.5);}
+:root{--bg:#12151e;--surface:#1a1d27;--border:#252a38;--text-1:#f0f4f8;--text-2:#8892a4;--accent:#4ade80;--pos:#4ade80;--neg:#f87171;--radius:4px;--shadow:0 1px 6px rgba(0,0,0,0.5);}
 
 html,body,[class*="css"],.stApp,button,input,select,textarea{font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif !important;font-size:14px;font-weight:400;color:var(--text-1);}
 code,pre,kbd{font-family:'JetBrains Mono','Fira Code',monospace !important;}
@@ -60,15 +60,15 @@ code{color:var(--accent) !important;background:var(--surface) !important;border:
 [data-testid="stTabs"] [role="tablist"]{background:var(--surface) !important;border-radius:var(--radius) !important;padding:3px !important;border:1px solid var(--border) !important;gap:2px !important;}
 [data-testid="stTabs"] [role="tab"]{font-size:13px !important;font-weight:500 !important;color:var(--text-2) !important;border-radius:3px !important;padding:5px 14px !important;border:none !important;transition:all 0.12s !important;text-decoration:none !important;}
 [data-testid="stTabs"] [role="tab"]:hover{color:var(--text-1) !important;}
-[data-testid="stTabs"] [role="tab"][aria-selected="true"]{background:rgba(0,212,170,0.1) !important;color:var(--accent) !important;border:1px solid rgba(0,212,170,0.2) !important;}
+[data-testid="stTabs"] [role="tab"][aria-selected="true"]{background:rgba(74,222,128,0.1) !important;color:var(--accent) !important;border:1px solid rgba(74,222,128,0.2) !important;}
 
-button[kind="primary"],[data-testid="stFormSubmitButton"]>button{background:var(--accent) !important;color:#060c0b !important;border:none !important;border-radius:var(--radius) !important;font-size:13px !important;font-weight:600 !important;letter-spacing:0.02em !important;transition:opacity 0.12s !important;}
+button[kind="primary"],[data-testid="stFormSubmitButton"]>button{background:var(--accent) !important;color:#061409 !important;border:none !important;border-radius:var(--radius) !important;font-size:13px !important;font-weight:600 !important;letter-spacing:0.02em !important;transition:opacity 0.12s !important;}
 button[kind="primary"]:hover,[data-testid="stFormSubmitButton"]>button:hover{opacity:0.85 !important;}
-button[kind="secondary"]{background:transparent !important;color:var(--accent) !important;border:1px solid rgba(0,212,170,0.3) !important;border-radius:var(--radius) !important;font-size:13px !important;font-weight:500 !important;transition:all 0.12s !important;}
-button[kind="secondary"]:hover{background:rgba(0,212,170,0.07) !important;border-color:var(--accent) !important;}
+button[kind="secondary"]{background:transparent !important;color:var(--accent) !important;border:1px solid rgba(74,222,128,0.3) !important;border-radius:var(--radius) !important;font-size:13px !important;font-weight:500 !important;transition:all 0.12s !important;}
+button[kind="secondary"]:hover{background:rgba(74,222,128,0.07) !important;border-color:var(--accent) !important;}
 
 [data-testid="stTextInput"] input,[data-testid="stNumberInput"] input,[data-testid="stTextArea"] textarea{background:var(--bg) !important;border:1px solid var(--border) !important;border-radius:var(--radius) !important;color:var(--text-1) !important;font-size:14px !important;}
-[data-testid="stTextInput"] input:focus,[data-testid="stNumberInput"] input:focus,[data-testid="stTextArea"] textarea:focus{border-color:var(--accent) !important;box-shadow:0 0 0 2px rgba(0,212,170,0.1) !important;outline:none !important;}
+[data-testid="stTextInput"] input:focus,[data-testid="stNumberInput"] input:focus,[data-testid="stTextArea"] textarea:focus{border-color:var(--accent) !important;box-shadow:0 0 0 2px rgba(74,222,128,0.1) !important;outline:none !important;}
 [data-testid="stSelectbox"]>div>div,[data-testid="stMultiSelect"]>div>div{background:var(--bg) !important;border-color:var(--border) !important;border-radius:var(--radius) !important;color:var(--text-1) !important;font-size:14px !important;}
 
 [data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"]{background:var(--accent) !important;border-color:var(--accent) !important;}
@@ -87,8 +87,8 @@ hr{border:none !important;border-top:1px solid var(--border) !important;margin:1
 [data-testid="stDataFrame"]{background:var(--surface) !important;border:1px solid var(--border) !important;border-radius:var(--radius) !important;overflow:hidden !important;box-shadow:var(--shadow) !important;}
 [data-testid="stDataFrame"] th,[data-testid="stDataFrame"] [role="columnheader"]{background:var(--surface) !important;color:var(--text-2) !important;font-size:11px !important;font-weight:500 !important;text-transform:uppercase !important;letter-spacing:0.08em !important;border-bottom:1px solid var(--border) !important;}
 [data-testid="stDataFrame"] tr:nth-child(odd) td{background:var(--surface) !important;}
-[data-testid="stDataFrame"] tr:nth-child(even) td{background:#171e30 !important;}
-[data-testid="stDataFrame"] tr:hover td{background:rgba(0,212,170,0.04) !important;}
+[data-testid="stDataFrame"] tr:nth-child(even) td{background:#1f2233 !important;}
+[data-testid="stDataFrame"] tr:hover td{background:rgba(74,222,128,0.04) !important;}
 [data-testid="stDataFrame"] td,[data-testid="stDataFrame"] [role="gridcell"]{color:var(--text-1) !important;font-size:13px !important;border-bottom:1px solid var(--border) !important;}
 
 [data-testid="stSpinner"]>div>div{border-top-color:var(--accent) !important;}
@@ -96,7 +96,7 @@ hr{border:none !important;border-top:1px solid var(--border) !important;margin:1
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-::-webkit-scrollbar-thumb:hover{background:rgba(0,212,170,0.35);}
+::-webkit-scrollbar-thumb:hover{background:rgba(74,222,128,0.35);}
 
 [data-testid="stCaptionContainer"]{color:var(--text-2) !important;font-size:12px !important;}
 
@@ -139,13 +139,13 @@ def kpi_card(label: str, value: str, delta: str = None,
 
 def signal_badge(signal: str) -> str:
     cfg = {
-        "NEW BUY":  (_POS,   "rgba(0,212,170,0.12)",  "NEW BUY"),
-        "BUY":      (_POS,   "rgba(0,212,170,0.08)",  "BUY"),
-        "NEW SELL": (_NEG,   "rgba(240,79,90,0.12)",  "NEW SELL"),
-        "SELL":     (_NEG,   "rgba(240,79,90,0.08)",  "SELL"),
-        "NEUTRAL":  (_TEXT2, "rgba(107,122,153,0.08)","NEUTRAL"),
+        "NEW BUY":  (_POS,   "rgba(74,222,128,0.12)",  "NEW BUY"),
+        "BUY":      (_POS,   "rgba(74,222,128,0.08)",  "BUY"),
+        "NEW SELL": (_NEG,   "rgba(248,113,113,0.12)", "NEW SELL"),
+        "SELL":     (_NEG,   "rgba(248,113,113,0.08)", "SELL"),
+        "NEUTRAL":  (_TEXT2, "rgba(136,146,164,0.08)", "NEUTRAL"),
     }
-    color, bg, lbl = cfg.get(signal, (_TEXT2, "rgba(107,122,153,0.08)", signal))
+    color, bg, lbl = cfg.get(signal, (_TEXT2, "rgba(136,146,164,0.08)", signal))
     return (
         f'<span style="background:{bg};color:{color};border:1px solid {color}40;'
         f'border-radius:6px;padding:3px 10px;font-size:11px;'
@@ -262,13 +262,13 @@ def check_item(text: str, passed, detail: str = "") -> str:
 
 def analyst_badge(recommendation_key: str) -> str:
     cfg = {
-        "strong_buy":  (_POS,   "rgba(0,212,170,0.12)",  "Strong Buy"),
-        "buy":         (_POS,   "rgba(0,212,170,0.08)",  "Buy"),
+        "strong_buy":  (_POS,   "rgba(74,222,128,0.12)",  "Strong Buy"),
+        "buy":         (_POS,   "rgba(74,222,128,0.08)",  "Buy"),
         "hold":        ("#f0b429", "rgba(240,180,41,0.10)", "Hold"),
-        "sell":        (_NEG,   "rgba(240,79,90,0.10)",  "Sell"),
-        "strong_sell": (_NEG,   "rgba(240,79,90,0.14)",  "Strong Sell"),
+        "sell":        (_NEG,   "rgba(248,113,113,0.10)", "Sell"),
+        "strong_sell": (_NEG,   "rgba(248,113,113,0.14)", "Strong Sell"),
     }
-    color, bg, lbl = cfg.get(recommendation_key, (_TEXT2, "rgba(107,122,153,0.1)", "N/A"))
+    color, bg, lbl = cfg.get(recommendation_key, (_TEXT2, "rgba(136,146,164,0.1)", "N/A"))
     return (
         f'<span style="background:{bg};color:{color};border:1px solid {color}40;'
         f'border-radius:{_RADIUS};padding:4px 14px;font-size:13px;font-weight:600;'
