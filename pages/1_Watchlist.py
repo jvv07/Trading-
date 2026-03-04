@@ -212,7 +212,7 @@ try:
 except Exception:
     altman = None
 try:
-    rel_val = calc_relative_valuation(info)
+    rel_val = calc_relative_valuation(info, financials)
 except Exception:
     rel_val = {"pe_fair_value": None, "evebitda_fair_value": None,
                "pe_median": 20, "ev_median": 14, "sector": ""}
@@ -463,7 +463,7 @@ with right_col:
 
             st.markdown("")
             c3, c4 = st.columns(2, gap="medium")
-            rel = calc_relative_valuation(info)
+            rel = calc_relative_valuation(info, financials)
             with c3:
                 st.html(valuation_model_card(
                     f"Relative P/E (vs sector {rel['pe_median']}×)",
@@ -571,10 +571,25 @@ with right_col:
             fwd_eps  = safe_get(info, "forwardEps")
             trail_eps = safe_get(info, "trailingEps")
 
+            # Fallback: calculate YoY growth from income statement when info dict lacks them
+            _inc_fg = financials.get("annual_income", pd.DataFrame())
+            if rev_g is None:
+                _rr = bs_row(_inc_fg, "Total Revenue", "Revenue")
+                if _rr is not None:
+                    _rv = _rr.dropna()
+                    if len(_rv) >= 2 and float(_rv.iloc[1]) != 0:
+                        rev_g = (float(_rv.iloc[0]) - float(_rv.iloc[1])) / abs(float(_rv.iloc[1]))
+            if earn_g is None:
+                _nr = bs_row(_inc_fg, "Net Income")
+                if _nr is not None:
+                    _nv = _nr.dropna()
+                    if len(_nv) >= 2 and float(_nv.iloc[1]) > 0:
+                        earn_g = (float(_nv.iloc[0]) - float(_nv.iloc[1])) / abs(float(_nv.iloc[1]))
+
             st.html(stat_row([
-                ("Revenue Growth", f"{rev_g*100:.1f}%"   if rev_g    else "N/A",
+                ("Revenue Growth", f"{rev_g*100:.1f}%"   if rev_g is not None else "N/A",
                  "#00d4aa" if rev_g and rev_g > 0 else "#ff4b4b"),
-                ("Earnings Growth", f"{earn_g*100:.1f}%" if earn_g   else "N/A",
+                ("Earnings Growth", f"{earn_g*100:.1f}%" if earn_g is not None else "N/A",
                  "#00d4aa" if earn_g and earn_g > 0 else "#ff4b4b"),
                 ("Fwd EPS",  f"${fwd_eps:.2f}"  if fwd_eps  else "N/A"),
                 ("Trail EPS", f"${trail_eps:.2f}" if trail_eps else "N/A"),
@@ -653,14 +668,32 @@ with right_col:
 
             roe = safe_get(info, "returnOnEquity")
             roa = safe_get(info, "returnOnAssets")
+            net_mgn  = safe_get(info, "profitMargins")
+            gross_mgn = safe_get(info, "grossMargins")
+            op_mgn   = safe_get(info, "operatingMargins")
+            # Fallback: calculate margins from income statement
+            if any(v is None for v in [net_mgn, gross_mgn, op_mgn]):
+                _rev_r = bs_row(inc, "Total Revenue", "Revenue")
+                if _rev_r is not None and not _rev_r.dropna().empty:
+                    _rev_v = float(_rev_r.dropna().iloc[0])
+                    if _rev_v != 0:
+                        if net_mgn is None:
+                            _ni = _first_val(bs_row(inc, "Net Income"))
+                            if _ni is not None: net_mgn = _ni / _rev_v
+                        if gross_mgn is None:
+                            _gp = _first_val(bs_row(inc, "Gross Profit"))
+                            if _gp is not None: gross_mgn = _gp / _rev_v
+                        if op_mgn is None:
+                            _oi = _first_val(bs_row(inc, "Operating Income", "Operating Income Loss"))
+                            if _oi is not None: op_mgn = _oi / _rev_v
             st.html(stat_row([
-                ("ROE",        f"{roe*100:.1f}%" if roe else "N/A",
+                ("ROE",        f"{roe*100:.1f}%" if roe is not None else "N/A",
                  "#00d4aa" if roe and roe > 0.15 else "#f1c14e" if roe and roe > 0 else "#ff4b4b"),
-                ("ROA",        f"{roa*100:.1f}%" if roa else "N/A",
+                ("ROA",        f"{roa*100:.1f}%" if roa is not None else "N/A",
                  "#00d4aa" if roa and roa > 0.05 else "#f1c14e" if roa and roa > 0 else "#ff4b4b"),
-                ("Net Margin", f"{safe_get(info,'profitMargins',0)*100:.1f}%" if safe_get(info,'profitMargins') else "N/A"),
-                ("Gross Mgn",  f"{safe_get(info,'grossMargins',0)*100:.1f}%"  if safe_get(info,'grossMargins')  else "N/A"),
-                ("Op Margin",  f"{safe_get(info,'operatingMargins',0)*100:.1f}%" if safe_get(info,'operatingMargins') else "N/A"),
+                ("Net Margin", f"{net_mgn*100:.1f}%"   if net_mgn  is not None else "N/A"),
+                ("Gross Mgn",  f"{gross_mgn*100:.1f}%" if gross_mgn is not None else "N/A"),
+                ("Op Margin",  f"{op_mgn*100:.1f}%"    if op_mgn   is not None else "N/A"),
             ]))
 
             # Revenue + NI grouped bars

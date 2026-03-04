@@ -481,12 +481,16 @@ def calc_dcf(info: dict, financials: dict) -> dict | None:
 
     if ocf is None:
         ocf = float(safe_get(info, "operatingCashflow", 0) or 0)
-    if ocf <= 0:
-        return None
 
-    fcf = ocf - capex
+    fcf = (ocf - capex) if ocf > 0 else 0
+
+    # Fallback: yfinance pre-calculates freeCashflow in info dict
     if fcf <= 0:
-        return None
+        fc_direct = safe_get(info, "freeCashflow")
+        if fc_direct and float(fc_direct) > 0:
+            fcf = float(fc_direct)
+        else:
+            return None
 
     shares = float(safe_get(info, "sharesOutstanding", 0) or 0)
     if shares <= 0:
@@ -626,16 +630,33 @@ def calc_altman_z(info: dict, financials: dict) -> dict | None:
         return None
 
 
-def calc_relative_valuation(info: dict) -> dict:
+def calc_relative_valuation(info: dict, financials: dict | None = None) -> dict:
     sector = safe_get(info, "sector", "")
     mapped = SECTOR_NAME_MAP.get(sector, sector)
     pe_median = SECTOR_PE_MEDIANS.get(mapped, 20)
     ev_median = SECTOR_EV_EBITDA_MEDIANS.get(mapped, 14)
 
+    # Use trailing EPS; fall back to forward EPS for companies reporting losses
     eps = safe_get(info, "trailingEps", None)
+    if not eps or float(eps) <= 0:
+        eps = safe_get(info, "forwardEps", None)
     pe_fair = float(pe_median) * float(eps) if eps and float(eps) > 0 else None
 
     ebitda = safe_get(info, "ebitda", None)
+    # Calculate EBITDA from income statement when yfinance info doesn't have it
+    if (not ebitda or float(ebitda) <= 0) and financials:
+        try:
+            inc = financials.get("annual_income", pd.DataFrame())
+            ebit_r = bs_row(inc, "EBIT", "Operating Income", "Ebit", "Operating Income Loss")
+            da_r   = bs_row(inc, "Reconciled Depreciation", "Depreciation And Amortization",
+                             "Depreciation Amortization Depletion", "Depreciation")
+            ebit_v = _first_val(ebit_r)
+            da_v   = abs(_first_val(da_r) or 0)
+            if ebit_v and float(ebit_v) > 0:
+                ebitda = float(ebit_v) + da_v
+        except Exception:
+            pass
+
     shares = safe_get(info, "sharesOutstanding", None)
     total_debt = float(safe_get(info, "totalDebt", 0) or 0)
     total_cash = float(safe_get(info, "totalCash", 0) or 0)
@@ -751,8 +772,18 @@ def score_value(info: dict, financials: dict) -> tuple:
 def score_future(info: dict, financials: dict, fmp_data: dict) -> tuple:
     signals, score = [], 0.0
 
-    # 1. Revenue growth TTM
+    # 1. Revenue growth TTM (fall back to YoY from income statement)
     rev_g = safe_get(info, "revenueGrowth")
+    if rev_g is None:
+        try:
+            inc = financials.get("annual_income", pd.DataFrame())
+            rr = bs_row(inc, "Total Revenue", "Revenue")
+            if rr is not None:
+                rv = rr.dropna()
+                if len(rv) >= 2 and float(rv.iloc[1]) != 0:
+                    rev_g = (float(rv.iloc[0]) - float(rv.iloc[1])) / abs(float(rv.iloc[1]))
+        except Exception:
+            pass
     if rev_g is not None:
         pct = rev_g * 100
         if rev_g > 0.15:
@@ -764,8 +795,18 @@ def score_future(info: dict, financials: dict, fmp_data: dict) -> tuple:
     else:
         signals.append(_sig("Revenue growth not available", None))
 
-    # 2. Earnings growth TTM
+    # 2. Earnings growth TTM (fall back to YoY net income from income statement)
     earn_g = safe_get(info, "earningsGrowth")
+    if earn_g is None:
+        try:
+            inc = financials.get("annual_income", pd.DataFrame())
+            nr = bs_row(inc, "Net Income")
+            if nr is not None:
+                nv = nr.dropna()
+                if len(nv) >= 2 and float(nv.iloc[1]) > 0:
+                    earn_g = (float(nv.iloc[0]) - float(nv.iloc[1])) / abs(float(nv.iloc[1]))
+        except Exception:
+            pass
     if earn_g is not None:
         pct = earn_g * 100
         if earn_g > 0.15:
