@@ -4,10 +4,12 @@ import pandas as pd
 import requests
 
 from lib.style import inject_css, section_header
+from lib.nav import render_nav
 from lib.fundamental import (get_fmp_key, safe_get, format_large,
     SECTOR_PE_MEDIANS, SECTOR_EV_EBITDA_MEDIANS, SECTOR_NAME_MAP)
 
 inject_css()
+render_nav("Screener")
 st.title("Stock Screener")
 st.caption("Find stocks with 15+ financial filters. FMP API key unlocks global markets.")
 

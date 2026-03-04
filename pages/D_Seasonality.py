@@ -8,9 +8,11 @@ from plotly.subplots import make_subplots
 from scipy import stats
 
 from lib.style import inject_css
+from lib.nav import render_nav
 
-st.set_page_config(page_title="Seasonality", layout="wide")
+st.set_page_config(page_title="Seasonality", layout="wide", initial_sidebar_state="collapsed")
 inject_css()
+render_nav("Seasonality")
 st.title("Seasonality Analysis")
 st.caption("Discover recurring seasonal patterns in stocks and indices across time dimensions.")
 

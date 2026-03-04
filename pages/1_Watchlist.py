@@ -11,6 +11,7 @@ from lib.style import (
     inject_css, kpi_card, section_header, info_banner, stat_row,
     company_card_header, score_bar, check_item, analyst_badge, valuation_model_card,
 )
+from lib.nav import render_nav
 from lib.fundamental import (
     fetch_info, fetch_financials, fetch_holders, fetch_market_data,
     fetch_peer_info, fetch_fmp, get_fmp_key, safe_get, format_large,
@@ -20,8 +21,10 @@ from lib.fundamental import (
     get_sector_peers, SECTOR_NAME_MAP,
 )
 
-st.set_page_config(page_title="Watchlist / Research", layout="wide")
+st.set_page_config(page_title="Watchlist / Research", layout="wide",
+                   initial_sidebar_state="expanded")
 inject_css()
+render_nav("Watchlist")
 st.title("Watchlist & Research")
 
 client = get_client()
@@ -64,9 +67,35 @@ with st.sidebar:
 
 watchlist = load_watchlist()
 
-if not watchlist:
-    st.info("Add symbols using the sidebar.")
-    st.stop()
+# ── Global search: ?ticker=X routing ──────────────────────────────────────────
+_search_ticker = st.query_params.get("ticker", "").upper().strip()
+if _search_ticker:
+    # Direct research view for searched ticker — bypass watchlist selection
+    _in_wl = any(w["symbol"] == _search_ticker for w in watchlist)
+    _add_col, _back_col, _ = st.columns([2, 2, 8])
+    with _back_col:
+        if st.button("← Back to Watchlist", type="secondary"):
+            st.query_params.clear()
+            st.rerun()
+    with _add_col:
+        if not _in_wl:
+            if st.button(f"+ Add {_search_ticker} to Watchlist", type="primary"):
+                try:
+                    client.table("watchlist").insert({
+                        "user_id": SOLO_USER_ID, "symbol": _search_ticker,
+                    }).execute()
+                    st.success(f"{_search_ticker} added to watchlist.")
+                except Exception:
+                    st.warning(f"{_search_ticker} already in watchlist.")
+        else:
+            st.success(f"✓ {_search_ticker} is in your watchlist")
+    st.divider()
+    selected_sym = _search_ticker
+    wl_entry = None
+else:
+    if not watchlist:
+        st.info("Add symbols using the sidebar.")
+        st.stop()
 
 # ── Snapshot expander ─────────────────────────────────────────────────────────
 
@@ -105,9 +134,11 @@ def _rsi_snapshot(syms_key: str) -> dict:
     return result
 
 
-syms_key = ",".join(sorted(w["symbol"] for w in watchlist))
+if not _search_ticker:
+ syms_key = ",".join(sorted(w["symbol"] for w in watchlist))
 
-with st.expander("Watchlist Snapshot", expanded=False):
+if not _search_ticker and watchlist:
+ with st.expander("Watchlist Snapshot", expanded=False):
     snap     = _snapshot(syms_key)
     snap_df  = pd.DataFrame(snap)
     rsi_vals = _rsi_snapshot(syms_key)
@@ -136,26 +167,22 @@ with st.expander("Watchlist Snapshot", expanded=False):
         use_container_width=True, hide_index=True,
     )
 
-st.divider()
-
-# ── Symbol selector ───────────────────────────────────────────────────────────
-
-sym_list     = [w["symbol"] for w in watchlist]
-selected_sym = st.radio(
-    "Select symbol for research report:",
-    sym_list,
-    horizontal=True,
-    label_visibility="visible",
-)
-
-wl_entry = next((w for w in watchlist if w["symbol"] == selected_sym), None)
-
-col_remove, _ = st.columns([1, 6])
-if col_remove.button(f"Remove {selected_sym}", type="secondary"):
-    client.table("watchlist").delete().eq("user_id", SOLO_USER_ID).eq("symbol", selected_sym).execute()
-    st.rerun()
-
-st.divider()
+if not _search_ticker:
+    st.divider()
+    # ── Symbol selector ──────────────────────────────────────────────────────
+    sym_list     = [w["symbol"] for w in watchlist]
+    selected_sym = st.radio(
+        "Select symbol for research report:",
+        sym_list,
+        horizontal=True,
+        label_visibility="visible",
+    )
+    wl_entry = next((w for w in watchlist if w["symbol"] == selected_sym), None)
+    col_remove, _ = st.columns([1, 6])
+    if col_remove.button(f"Remove {selected_sym}", type="secondary"):
+        client.table("watchlist").delete().eq("user_id", SOLO_USER_ID).eq("symbol", selected_sym).execute()
+        st.rerun()
+    st.divider()
 
 # ── Load all data ─────────────────────────────────────────────────────────────
 

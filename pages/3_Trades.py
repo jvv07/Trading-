@@ -4,8 +4,10 @@ from datetime import datetime
 from lib.supabase_client import get_client, SOLO_USER_ID
 
 from lib.style import inject_css
-st.set_page_config(page_title="Trades", layout="wide")
+from lib.nav import render_nav
+st.set_page_config(page_title="Trades", layout="wide", initial_sidebar_state="collapsed")
 inject_css()
+render_nav("Trades")
 st.title("Trade Log")
 
 client = get_client()

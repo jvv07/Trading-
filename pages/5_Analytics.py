@@ -9,8 +9,10 @@ from lib import metrics as m
 from lib.supabase_client import get_client, SOLO_USER_ID
 
 from lib.style import inject_css
-st.set_page_config(page_title="Analytics", layout="wide")
+from lib.nav import render_nav
+st.set_page_config(page_title="Analytics", layout="wide", initial_sidebar_state="collapsed")
 inject_css()
+render_nav("Analytics")
 st.title("Analytics")
 
 trades_df = get_trades_df()

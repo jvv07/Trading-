@@ -10,11 +10,13 @@ import json
 from datetime import date
 
 from lib.style import inject_css
+from lib.nav import render_nav
 from lib.portfolio import get_trades_df, compute_positions, fetch_current_prices
 from lib import metrics as m
 
-st.set_page_config(page_title="Monte Carlo", layout="wide")
+st.set_page_config(page_title="Monte Carlo", layout="wide", initial_sidebar_state="collapsed")
 inject_css()
+render_nav("Monte Carlo")
 st.title("Monte Carlo Simulation")
 st.caption("Probabilistic forecasting of portfolio and strategy performance using thousands of simulated paths.")
 

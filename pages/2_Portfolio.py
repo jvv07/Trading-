@@ -6,8 +6,10 @@ from lib.charts import equity_curve, correlation_heatmap
 from lib import metrics as m
 
 from lib.style import inject_css
-st.set_page_config(page_title="Portfolio", layout="wide")
+from lib.nav import render_nav
+st.set_page_config(page_title="Portfolio", layout="wide", initial_sidebar_state="collapsed")
 inject_css()
+render_nav("Portfolio")
 st.title("Portfolio")
 
 trades_df = get_trades_df()

@@ -15,11 +15,13 @@ import plotly.graph_objects as go
 import plotly.express as px
 from scipy.optimize import minimize
 from lib.style import inject_css, section_header, kpi_card, info_banner
+from lib.nav import render_nav
 from lib.portfolio import get_trades_df, compute_positions
 from lib import metrics as m
 
-st.set_page_config(page_title="Optimize", layout="wide")
+st.set_page_config(page_title="Optimize", layout="wide", initial_sidebar_state="collapsed")
 inject_css()
+render_nav("Optimize")
 
 st.title("Portfolio Optimizer")
 st.markdown(

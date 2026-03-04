@@ -5,10 +5,12 @@ import yfinance as yf
 import plotly.graph_objects as go
 import plotly.express as px
 from lib.style import inject_css, kpi_card, section_header
+from lib.nav import render_nav
 from lib.universe import SECTOR_ETFS, SECTOR_WEIGHTS, SP100
 
-st.set_page_config(page_title="Market Overview", layout="wide")
+st.set_page_config(page_title="Market Overview", layout="wide", initial_sidebar_state="collapsed")
 inject_css()
+render_nav("Market")
 
 st.title("Market Overview")
 

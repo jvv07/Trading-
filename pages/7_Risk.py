@@ -8,8 +8,10 @@ from lib.charts import correlation_heatmap
 from lib import metrics as m
 
 from lib.style import inject_css
-st.set_page_config(page_title="Risk", layout="wide")
+from lib.nav import render_nav
+st.set_page_config(page_title="Risk", layout="wide", initial_sidebar_state="collapsed")
 inject_css()
+render_nav("Risk")
 st.title("Risk Dashboard")
 
 trades_df = get_trades_df()

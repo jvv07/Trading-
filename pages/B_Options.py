@@ -12,9 +12,11 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from lib.style import inject_css
+from lib.nav import render_nav
 
-st.set_page_config(page_title="Options Analytics", layout="wide")
+st.set_page_config(page_title="Options Analytics", layout="wide", initial_sidebar_state="collapsed")
 inject_css()
+render_nav("Options")
 st.title("Options Analytics")
 st.caption("Real-time options chains, implied volatility surface, Greeks, and strategy payoff simulator.")
 

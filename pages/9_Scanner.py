@@ -11,12 +11,14 @@ import yfinance as yf
 import plotly.graph_objects as go
 import plotly.express as px
 from lib.style import inject_css, signal_badge, section_header, info_banner
+from lib.nav import render_nav
 from lib.universe import UNIVERSE_OPTIONS
 from lib.indicators import sma, ema, rsi, macd, bollinger_bands
 from lib.backtest import STRATEGIES
 
 st.set_page_config(page_title="Scanner", layout="wide")
 inject_css()
+render_nav("Scanner")
 
 st.title("Strategy Scanner")
 st.markdown(

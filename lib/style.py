@@ -8,10 +8,6 @@ import streamlit as st
 
 def inject_css():
     st.markdown(_CSS, unsafe_allow_html=True)
-    # Custom sidebar logo injected once per session
-    if "sidebar_logo_injected" not in st.session_state:
-        st.session_state.sidebar_logo_injected = True
-        st.sidebar.markdown(_SIDEBAR_LOGO, unsafe_allow_html=True)
 
 
 # ── HTML component helpers ─────────────────────────────────────────────────
@@ -132,20 +128,19 @@ code, pre, kbd { font-family: 'JetBrains Mono', monospace !important; }
 /* ── Chrome removal ── */
 #MainMenu { visibility: hidden !important; }
 footer    { visibility: hidden !important; }
-/* Keep header present so sidebar toggle stays accessible when sidebar is closed */
-[data-testid="stHeader"] {
-    background: #080c14 !important;
-    border-bottom: 1px solid #131c2e !important;
-}
-/* Hide decorative/status chrome inside the header */
+/* Hide Streamlit header — custom nav bar (lib/nav.py) replaces it */
+[data-testid="stHeader"]       { display: none !important; }
 [data-testid="stToolbar"]      { display: none !important; }
 [data-testid="stDecoration"]   { display: none !important; }
 [data-testid="stStatusWidget"] { display: none !important; }
+/* Hide auto-generated sidebar page list — custom nav replaces it */
+[data-testid="stSidebarNavItems"]     { display: none !important; }
+[data-testid="stSidebarNavSeparator"] { display: none !important; }
 
 /* ── App background ── */
 .stApp { background: #080c14 !important; }
 .main .block-container {
-    padding: 1.5rem 2rem 2rem 2rem !important;
+    padding: 72px 2rem 2rem 2rem !important;
     max-width: 100% !important;
 }
 
