@@ -223,12 +223,10 @@ if _load_error:
 
 # ── Company Research Report ────────────────────────────────────────────────────
 
-st.markdown(
+st.html(
     "<div style='color:#00d4aa;font-size:.7rem;font-weight:700;"
     "text-transform:uppercase;letter-spacing:.15em;margin-bottom:.5rem'>"
-    f"◆ COMPANY RESEARCH REPORT — {selected_sym}</div>",
-    unsafe_allow_html=True,
-)
+    f"◆ COMPANY RESEARCH REPORT — {selected_sym}</div>")
 
 left_col, right_col = st.columns([1, 2.5], gap="large")
 
@@ -243,7 +241,7 @@ with left_col:
                   if price and prev_close else None)
     mkt_cap    = safe_get(info, "marketCap")
 
-    st.markdown(company_card_header(
+    st.html(company_card_header(
         ticker       = selected_sym,
         name         = safe_get(info, "longName", safe_get(info, "shortName", selected_sym)),
         sector       = safe_get(info, "sector", "N/A"),
@@ -252,7 +250,7 @@ with left_col:
         market_cap_str = format_large(mkt_cap),
         price        = price,
         change_pct   = chg_pct,
-    ), unsafe_allow_html=True)
+    ))
 
     # Pentagon radar
     dims       = ["Value", "Future", "Past", "Health", "Dividend"]
@@ -301,13 +299,13 @@ with left_col:
     # Score bars
     st.markdown("---")
     for label, sc in zip(dims, dim_scores):
-        st.markdown(score_bar(label, sc), unsafe_allow_html=True)
+        st.html(score_bar(label, sc))
 
     # Overall score
     total = sum(dim_scores)
     overall = (total / 30) * 10
     ov_color = "#ff4b4b" if overall < 3.5 else "#f1c14e" if overall < 6 else "#00d4aa"
-    st.markdown(f"""
+    st.html(f"""
 <div style="background:linear-gradient(135deg,#0d1422,#0a1020);
             border:1px solid #1a2332;border-radius:12px;padding:14px;
             text-align:center;margin-top:12px">
@@ -316,7 +314,7 @@ with left_col:
   <div style="color:{ov_color};font-size:2.2rem;font-weight:900;
               letter-spacing:-.04em">{overall:.1f}<span style="font-size:1rem;
               color:#4a5a72">/10</span></div>
-</div>""", unsafe_allow_html=True)
+</div>""")
 
     # Price target bar
     t_lo  = safe_get(info, "targetLowPrice")
@@ -324,9 +322,9 @@ with left_col:
     t_med = safe_get(info, "targetMeanPrice")
     if t_lo and t_hi and price:
         st.markdown("---")
-        st.markdown("<div style='color:#4a5a72;font-size:.68rem;font-weight:700;"
+        st.html("<div style='color:#4a5a72;font-size:.68rem;font-weight:700;"
                     "text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px'>"
-                    "Analyst Price Targets</div>", unsafe_allow_html=True)
+                    "Analyst Price Targets</div>")
         fig_pt = go.Figure()
         fig_pt.add_trace(go.Bar(
             x=["Low","Mean","High","Current"],
@@ -346,7 +344,7 @@ with left_col:
         st.plotly_chart(fig_pt, use_container_width=True)
 
     if wl_entry and wl_entry.get("notes"):
-        st.markdown(info_banner(f"📌 {wl_entry['notes']}", "#4e9af1"), unsafe_allow_html=True)
+        st.html(info_banner(f"📌 {wl_entry['notes']}", "#4e9af1"))
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -376,27 +374,25 @@ with right_col:
             rec_key   = safe_get(info, "recommendationKey", "")
             n_analysts = safe_get(info, "numberOfAnalystOpinions", 0) or 0
 
-            st.markdown(stat_row([
+            st.html(stat_row([
                 ("P/E (TTM)", pe_str),
                 ("EPS (TTM)", eps_str),
                 ("Beta",      beta_str),
                 ("52W Range", rng52),
                 ("Volume",    vol_str),
-            ]), unsafe_allow_html=True)
+            ]))
 
             c1, c2 = st.columns([1, 2])
             with c1:
-                st.markdown(
+                st.html(
                     analyst_badge(rec_key) +
                     f'<span style="color:#4a5a72;font-size:.75rem;margin-left:8px">'
-                    f'{n_analysts} analysts</span>',
-                    unsafe_allow_html=True,
-                )
+                    f'{n_analysts} analysts</span>')
             st.markdown("")
 
             # Peer comparison table
             if peers:
-                st.markdown(section_header("Peer Comparison"), unsafe_allow_html=True)
+                st.html(section_header("Peer Comparison"))
                 with st.spinner("Loading peers…"):
                     p_info = fetch_peer_info(",".join(sorted(peers)))
                 peer_rows = []
@@ -419,20 +415,18 @@ with right_col:
             # News feed
             news = market_d.get("news", [])
             if news:
-                st.markdown(section_header("Latest News"), unsafe_allow_html=True)
+                st.html(section_header("Latest News"))
                 for item in news[:6]:
                     try:
                         title = item.get("title","")
                         link  = item.get("link","")
                         pub   = item.get("publisher","")
-                        st.markdown(
+                        st.html(
                             f'<div style="padding:6px 0;border-bottom:1px solid #1a2332">'
                             f'<a href="{link}" target="_blank" style="color:#e2e8f0;'
                             f'text-decoration:none;font-size:.85rem;font-weight:500">{title}</a>'
                             f'<div style="color:#4a5a72;font-size:.7rem;margin-top:2px">{pub}</div>'
-                            f'</div>',
-                            unsafe_allow_html=True,
-                        )
+                            f'</div>')
                     except Exception:
                         pass
 
@@ -451,52 +445,52 @@ with right_col:
             # 4 model cards
             c1, c2 = st.columns(2, gap="medium")
             with c1:
-                st.markdown(valuation_model_card(
+                st.html(valuation_model_card(
                     "DCF (2-Stage)",
                     dcf_result["fair_value"] if dcf_result else None,
                     price,
                     _upside(dcf_result["fair_value"] if dcf_result else None),
                     dcf_result["methodology"] if dcf_result else "Requires positive FCF",
-                ), unsafe_allow_html=True)
+                ))
             with c2:
-                st.markdown(valuation_model_card(
+                st.html(valuation_model_card(
                     "Graham Number",
                     graham["graham_number"] if graham else None,
                     price,
                     _upside(graham["graham_number"] if graham else None),
                     "√(22.5 × EPS × Book Value)",
-                ), unsafe_allow_html=True)
+                ))
 
             st.markdown("")
             c3, c4 = st.columns(2, gap="medium")
             rel = calc_relative_valuation(info)
             with c3:
-                st.markdown(valuation_model_card(
+                st.html(valuation_model_card(
                     f"Relative P/E (vs sector {rel['pe_median']}×)",
                     rel["pe_fair_value"],
                     price,
                     _upside(rel["pe_fair_value"]),
                     f"Sector median P/E: {rel['pe_median']}×",
-                ), unsafe_allow_html=True)
+                ))
             with c4:
-                st.markdown(valuation_model_card(
+                st.html(valuation_model_card(
                     f"EV/EBITDA (vs {rel['ev_median']}×)",
                     rel["evebitda_fair_value"],
                     price,
                     _upside(rel["evebitda_fair_value"]),
                     f"Sector median EV/EBITDA: {rel['ev_median']}×",
-                ), unsafe_allow_html=True)
+                ))
 
             if ddm_result:
                 st.markdown("")
-                st.markdown(valuation_model_card(
+                st.html(valuation_model_card(
                     "DDM (Dividend Discount)",
                     ddm_result["fair_value"],
                     price,
                     _upside(ddm_result["fair_value"]),
                     ddm_result["methodology"],
                     accent="#f1c14e",
-                ), unsafe_allow_html=True)
+                ))
 
             # Price vs fair values bar chart
             st.markdown("---")
@@ -532,13 +526,13 @@ with right_col:
                 st.plotly_chart(fig_fv, use_container_width=True)
 
             # Valuation signals
-            st.markdown(section_header("Valuation Signals"), unsafe_allow_html=True)
+            st.html(section_header("Valuation Signals"))
             for sig in val_sigs:
-                st.markdown(check_item(sig["text"], sig["passed"]), unsafe_allow_html=True)
+                st.html(check_item(sig["text"], sig["passed"]))
 
             # Peer scatter: P/E vs Revenue Growth
             if peers:
-                st.markdown(section_header("Peer: P/E vs Revenue Growth"), unsafe_allow_html=True)
+                st.html(section_header("Peer: P/E vs Revenue Growth"))
                 p_info = fetch_peer_info(",".join(sorted(peers)))
                 all_info2 = {selected_sym: info, **p_info}
                 sx, sy, slabels = [], [], []
@@ -577,7 +571,7 @@ with right_col:
             fwd_eps  = safe_get(info, "forwardEps")
             trail_eps = safe_get(info, "trailingEps")
 
-            st.markdown(stat_row([
+            st.html(stat_row([
                 ("Revenue Growth", f"{rev_g*100:.1f}%"   if rev_g    else "N/A",
                  "#00d4aa" if rev_g and rev_g > 0 else "#ff4b4b"),
                 ("Earnings Growth", f"{earn_g*100:.1f}%" if earn_g   else "N/A",
@@ -586,7 +580,7 @@ with right_col:
                 ("Trail EPS", f"${trail_eps:.2f}" if trail_eps else "N/A"),
                 ("Target",   f"${safe_get(info,'targetMeanPrice'):.2f}"
                               if safe_get(info,"targetMeanPrice") else "N/A", "#f1c14e"),
-            ]), unsafe_allow_html=True)
+            ]))
 
             # Revenue + Earnings bar chart (4Y)
             inc = financials.get("annual_income", pd.DataFrame())
@@ -636,7 +630,7 @@ with right_col:
             # Upgrades/downgrades
             upgrades = market_d.get("upgrades", pd.DataFrame())
             if not upgrades.empty:
-                st.markdown(section_header("Recent Upgrades / Downgrades"), unsafe_allow_html=True)
+                st.html(section_header("Recent Upgrades / Downgrades"))
                 try:
                     disp = upgrades.reset_index()
                     st.dataframe(disp.head(10), use_container_width=True, hide_index=True)
@@ -644,9 +638,9 @@ with right_col:
                     st.dataframe(upgrades.head(10), use_container_width=True)
 
             # Future signals
-            st.markdown(section_header("Future Growth Signals"), unsafe_allow_html=True)
+            st.html(section_header("Future Growth Signals"))
             for sig in fut_sigs:
-                st.markdown(check_item(sig["text"], sig["passed"]), unsafe_allow_html=True)
+                st.html(check_item(sig["text"], sig["passed"]))
 
         except Exception as e:
             st.info("Growth data could not be loaded for this symbol.")
@@ -659,7 +653,7 @@ with right_col:
 
             roe = safe_get(info, "returnOnEquity")
             roa = safe_get(info, "returnOnAssets")
-            st.markdown(stat_row([
+            st.html(stat_row([
                 ("ROE",        f"{roe*100:.1f}%" if roe else "N/A",
                  "#00d4aa" if roe and roe > 0.15 else "#f1c14e" if roe and roe > 0 else "#ff4b4b"),
                 ("ROA",        f"{roa*100:.1f}%" if roa else "N/A",
@@ -667,7 +661,7 @@ with right_col:
                 ("Net Margin", f"{safe_get(info,'profitMargins',0)*100:.1f}%" if safe_get(info,'profitMargins') else "N/A"),
                 ("Gross Mgn",  f"{safe_get(info,'grossMargins',0)*100:.1f}%"  if safe_get(info,'grossMargins')  else "N/A"),
                 ("Op Margin",  f"{safe_get(info,'operatingMargins',0)*100:.1f}%" if safe_get(info,'operatingMargins') else "N/A"),
-            ]), unsafe_allow_html=True)
+            ]))
 
             # Revenue + NI grouped bars
             rev_row = bs_row(inc, "Total Revenue", "Revenue")
@@ -730,8 +724,8 @@ with right_col:
 
             # Altman Z components
             if altman:
-                st.markdown(section_header(
-                    f"Altman Z-Score: {altman['z_score']:.2f} — {altman['zone']}"), unsafe_allow_html=True)
+                st.html(section_header(
+                    f"Altman Z-Score: {altman['z_score']:.2f} — {altman['zone']}"))
                 comps = altman["components"]
                 fig_z = go.Figure(go.Bar(
                     x=list(comps.keys()),
@@ -747,9 +741,9 @@ with right_col:
                 st.plotly_chart(fig_z, use_container_width=True)
 
             # Past signals
-            st.markdown(section_header("Past Performance Signals"), unsafe_allow_html=True)
+            st.html(section_header("Past Performance Signals"))
             for sig in past_sigs:
-                st.markdown(check_item(sig["text"], sig["passed"]), unsafe_allow_html=True)
+                st.html(check_item(sig["text"], sig["passed"]))
 
         except Exception as e:
             st.info("Historical data could not be loaded for this symbol.")
@@ -763,7 +757,7 @@ with right_col:
             de         = safe_get(info, "debtToEquity")
             de_actual  = (de / 100) if de else None
 
-            st.markdown(stat_row([
+            st.html(stat_row([
                 ("Cash",          format_large(total_cash)),
                 ("Total Debt",    format_large(total_debt)),
                 ("Net Cash",      format_large(total_cash - total_debt),
@@ -774,7 +768,7 @@ with right_col:
                 ("D/E",           f"{de_actual:.2f}x" if de_actual else "N/A",
                  "#00d4aa" if de_actual and de_actual < 1 else
                  "#f1c14e" if de_actual and de_actual < 2 else "#ff4b4b"),
-            ]), unsafe_allow_html=True)
+            ]))
 
             # Cash vs Debt bar
             fig_cd = go.Figure(go.Bar(
@@ -850,9 +844,9 @@ with right_col:
                 st.plotly_chart(fig_gauge, use_container_width=True)
 
             # Health signals
-            st.markdown(section_header("Financial Health Signals"), unsafe_allow_html=True)
+            st.html(section_header("Financial Health Signals"))
             for sig in hlt_sigs:
-                st.markdown(check_item(sig["text"], sig["passed"]), unsafe_allow_html=True)
+                st.html(check_item(sig["text"], sig["passed"]))
 
         except Exception as e:
             st.info("Financial health data could not be loaded for this symbol.")
@@ -864,17 +858,17 @@ with right_col:
             div_rate  = safe_get(info, "dividendRate")
 
             if not div_yield or div_yield <= 0:
-                st.markdown(info_banner(
+                st.html(info_banner(
                     "This company does not currently pay a dividend. "
                     "The dividend score is 0/6.", "#4a5a72"
-                ), unsafe_allow_html=True)
+                ))
             else:
                 payout    = safe_get(info, "payoutRatio")
                 ex_date   = safe_get(info, "exDividendDate")
                 last_div  = safe_get(info, "lastDividendValue")
                 five_yr   = safe_get(info, "fiveYearAvgDividendYield")
 
-                st.markdown(stat_row([
+                st.html(stat_row([
                     ("Yield",        f"{div_yield*100:.2f}%", "#00d4aa"),
                     ("Annual Rate",  f"${div_rate:.2f}"       if div_rate  else "N/A"),
                     ("Payout Ratio", f"{payout*100:.0f}%"     if payout   else "N/A",
@@ -882,7 +876,7 @@ with right_col:
                      "#f1c14e" if payout and payout < 0.8 else "#ff4b4b"),
                     ("5Y Avg Yield", f"{five_yr:.2f}%"        if five_yr  else "N/A"),
                     ("Last Div",     f"${last_div:.4f}"       if last_div else "N/A"),
-                ]), unsafe_allow_html=True)
+                ]))
 
                 # Dividend history bar
                 divs = market_d.get("dividends", pd.Series(dtype=float))
@@ -916,7 +910,7 @@ with right_col:
                 # DDM sensitivity table (±1% growth / WACC grid)
                 if ddm_result:
                     import numpy as np
-                    st.markdown(section_header("DDM Sensitivity Table"), unsafe_allow_html=True)
+                    st.html(section_header("DDM Sensitivity Table"))
                     base_g    = ddm_result["growth_rate"]
                     base_wacc = ddm_result["wacc"]
                     g_range   = [base_g - 0.01, base_g, base_g + 0.01]
@@ -934,9 +928,9 @@ with right_col:
                     st.dataframe(pd.DataFrame(rows_ddm).T, use_container_width=True)
 
             # Dividend signals
-            st.markdown(section_header("Dividend Signals"), unsafe_allow_html=True)
+            st.html(section_header("Dividend Signals"))
             for sig in div_sigs:
-                st.markdown(check_item(sig["text"], sig["passed"]), unsafe_allow_html=True)
+                st.html(check_item(sig["text"], sig["passed"]))
 
         except Exception as e:
             st.info("Dividend data could not be loaded for this symbol.")
@@ -960,8 +954,7 @@ with right_col:
             ]
             has_gov = any(v is not None for _, v in gov_items)
             if has_gov:
-                st.markdown(section_header("Governance Risk (1=Low, 10=High)"),
-                            unsafe_allow_html=True)
+                st.html(section_header("Governance Risk (1=Low, 10=High)"))
                 g_labels = [l for l, v in gov_items if v is not None]
                 g_values = [float(v) for _, v in gov_items if v is not None]
                 g_colors = ["#ff4b4b" if v >= 7 else "#f1c14e" if v >= 4 else "#00d4aa"
@@ -980,8 +973,7 @@ with right_col:
                 )
                 st.plotly_chart(fig_gov, use_container_width=True)
             else:
-                st.markdown(info_banner("Governance risk scores not available.", "#4a5a72"),
-                            unsafe_allow_html=True)
+                st.html(info_banner("Governance risk scores not available.", "#4a5a72"))
 
             # Insider transactions
             ins_tx = holders.get("insider_tx", pd.DataFrame())
@@ -1005,7 +997,7 @@ with right_col:
                     pass
 
             if not ins_tx.empty:
-                st.markdown(section_header("Insider Transactions"), unsafe_allow_html=True)
+                st.html(section_header("Insider Transactions"))
                 st.dataframe(ins_tx.head(15), use_container_width=True, hide_index=True)
 
                 # Buy/sell donut
@@ -1034,13 +1026,12 @@ with right_col:
                 except Exception:
                     pass
             else:
-                st.markdown(info_banner("Insider transaction data not available.", "#4a5a72"),
-                            unsafe_allow_html=True)
+                st.html(info_banner("Insider transaction data not available.", "#4a5a72"))
 
             # Analyst recommendation trend
             recs = market_d.get("recommendations", pd.DataFrame())
             if not recs.empty:
-                st.markdown(section_header("Analyst Recommendation Trend"), unsafe_allow_html=True)
+                st.html(section_header("Analyst Recommendation Trend"))
                 try:
                     recs2 = recs.copy()
                     if "period" in recs2.columns:
@@ -1083,24 +1074,24 @@ with right_col:
             inst_pct  = safe_get(info, "heldPercentInstitutions")
             inside_pct = safe_get(info, "heldPercentInsiders")
 
-            st.markdown(stat_row([
+            st.html(stat_row([
                 ("Institutional %", f"{inst_pct*100:.1f}%"  if inst_pct   else "N/A"),
                 ("Insider %",       f"{inside_pct*100:.1f}%" if inside_pct else "N/A"),
                 ("Short Float %",   short_str,
                  "#ff4b4b" if short_pct and short_pct > 0.15 else
                  "#f1c14e" if short_pct and short_pct > 0.05 else "#00d4aa"),
-            ]), unsafe_allow_html=True)
+            ]))
 
             # Major holders
             if not major.empty:
-                st.markdown(section_header("Major Holders"), unsafe_allow_html=True)
+                st.html(section_header("Major Holders"))
                 st.dataframe(major, use_container_width=True, hide_index=True)
 
             # Institutional holders
             if not inst.empty:
                 col_a, col_b = st.columns([1.2, 1], gap="medium")
                 with col_a:
-                    st.markdown(section_header("Top Institutional Holders"), unsafe_allow_html=True)
+                    st.html(section_header("Top Institutional Holders"))
                     disp_cols = [c for c in ["Holder", "Shares", "% Out", "Value"]
                                  if c in inst.columns]
                     if disp_cols:
@@ -1157,8 +1148,7 @@ with right_col:
                 except Exception:
                     pass
             else:
-                st.markdown(info_banner("Institutional holder data not available.", "#4a5a72"),
-                            unsafe_allow_html=True)
+                st.html(info_banner("Institutional holder data not available.", "#4a5a72"))
 
         except Exception as e:
             st.info("Ownership data could not be loaded for this symbol.")

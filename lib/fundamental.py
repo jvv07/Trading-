@@ -408,6 +408,65 @@ def calc_wacc(info: dict) -> float:
     return max(0.06, min(0.18, wacc))
 
 
+def _estimate_dcf_growth(info: dict, financials: dict) -> float:
+    """
+    Multi-signal growth estimation for DCF.
+    Uses historical revenue CAGR, forward EPS growth, and earnings growth.
+    TTM revenue/earnings growth alone is unreliable (cyclical swings, one-off quarters).
+    """
+    signals = []
+
+    # Signal 1: 3-year historical revenue CAGR from income statement (most reliable)
+    inc = financials.get("annual_income", pd.DataFrame())
+    rev_row = bs_row(inc, "Total Revenue", "Revenue")
+    if rev_row is not None:
+        rev_vals = rev_row.dropna()
+        if len(rev_vals) >= 3:
+            newest = float(rev_vals.iloc[0])
+            oldest = float(rev_vals.iloc[min(3, len(rev_vals)-1)])
+            n_years = min(3, len(rev_vals)-1)
+            if oldest > 0 and newest > 0 and n_years > 0:
+                cagr = (newest / oldest) ** (1.0 / n_years) - 1
+                if cagr > 0:
+                    signals.append(min(cagr, 0.35))
+
+    # Signal 2: Forward EPS growth (analyst expectations for next year)
+    fwd_eps = safe_get(info, "forwardEps")
+    trail_eps = safe_get(info, "trailingEps")
+    if fwd_eps and trail_eps and float(trail_eps) > 0:
+        eps_g = (float(fwd_eps) - float(trail_eps)) / float(trail_eps)
+        if eps_g > 0:
+            signals.append(min(eps_g, 0.40))
+
+    # Signal 3: TTM earnings growth (only if positive — avoid polluting with cyclical dips)
+    earn_g = safe_get(info, "earningsGrowth")
+    if earn_g and float(earn_g) > 0:
+        signals.append(min(float(earn_g), 0.40))
+
+    # Signal 4: TTM revenue growth (only if positive)
+    rev_g = safe_get(info, "revenueGrowth")
+    if rev_g and float(rev_g) > 0:
+        signals.append(min(float(rev_g), 0.35))
+
+    if signals:
+        # Weighted average: historical CAGR counts double (more stable than TTM)
+        growth = sum(signals) / len(signals)
+        return max(0.05, min(0.30, growth))
+
+    # No positive signals — sector-appropriate conservative default
+    sector = safe_get(info, "sector", "")
+    mapped = SECTOR_NAME_MAP.get(sector, sector)
+    defaults = {
+        "Technology": 0.08, "Healthcare": 0.07,
+        "Consumer Disc.": 0.06, "Consumer Discretionary": 0.06,
+        "Communication": 0.07, "Communication Services": 0.07,
+        "Industrials": 0.06, "Consumer Staples": 0.05,
+        "Financials": 0.06, "Energy": 0.05,
+        "Materials": 0.05, "Utilities": 0.04, "Real Estate": 0.05,
+    }
+    return defaults.get(mapped, 0.06)
+
+
 def calc_dcf(info: dict, financials: dict) -> dict | None:
     cf = financials.get("annual_cf", pd.DataFrame())
 
@@ -434,9 +493,8 @@ def calc_dcf(info: dict, financials: dict) -> dict | None:
         return None
 
     wacc = calc_wacc(info)
-    rev_growth = safe_get(info, "revenueGrowth", None) or safe_get(info, "earningsGrowth", None) or 0.05
-    growth1 = max(0.02, min(0.25, float(rev_growth)))
-    growth2 = growth1 * 0.6
+    growth1 = _estimate_dcf_growth(info, financials)
+    growth2 = growth1 * 0.55  # deceleration in stage 2
     terminal_growth = 0.025
 
     if wacc <= terminal_growth + 0.005:
