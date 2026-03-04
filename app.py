@@ -225,7 +225,7 @@ if wl_syms:
         pct_str = f"{arrow} {abs(pct):.2f}%" if pct is not None else "—"
         with cols[i % 6]:
             st.html(f"""
-<a href="/Watchlist?ticker={sym}" style="text-decoration:none">
+<a href="/Watchlist?ticker={sym}" target="_self" style="text-decoration:none">
 <div style="background:#0d1422;border:1px solid #1a2332;border-radius:12px;
             padding:14px 16px;text-align:center;cursor:pointer;
             transition:border-color .2s" onmouseover="this.style.borderColor='#00d4aa40'"

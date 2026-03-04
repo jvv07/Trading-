@@ -59,10 +59,10 @@ def render_nav(current_page: str = "") -> None:
 
     def _link(label: str, url: str) -> str:
         cls = "vc-on" if current_page == label else ""
-        return f'<a href="{url}" class="vc-a {cls}">{label}</a>'
+        return f'<a href="{url}" target="_self" class="vc-a {cls}">{label}</a>'
 
     def _dropdown(label: str, children: list) -> str:
-        items = "".join(f'<a href="{u}">{l}</a>' for l, u in children)
+        items = "".join(f'<a href="{u}" target="_self">{l}</a>' for l, u in children)
         return (
             f'<div class="vc-dd">'
             f'<span class="vc-dd-btn">{label} &#9662;</span>'
@@ -77,7 +77,7 @@ def render_nav(current_page: str = "") -> None:
     html = (
         f'{_NAV_CSS}'
         f'<nav class="vc-nav">'
-        f'<a href="/" class="vc-logo">VULPEN CAPITAL</a>'
+        f'<a href="/" target="_self" class="vc-logo">VULPEN CAPITAL</a>'
         f'<div class="vc-links">{links}</div>'
         f'<form class="vc-search" action="/Watchlist" method="get">'
         f'<input type="text" name="ticker" placeholder="Search ticker..." autocomplete="off" spellcheck="false">'
