@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import yfinance as yf
+import plotly.graph_objects as go
 from datetime import datetime
 
 st.set_page_config(
@@ -12,7 +13,8 @@ st.set_page_config(
 
 from lib.style import inject_css, kpi_card, section_header
 from lib.nav import render_nav
-from lib.portfolio import get_trades_df, compute_positions, fetch_current_prices
+from lib.portfolio import get_trades_df, compute_positions, fetch_current_prices, build_equity_curve
+from lib.charts import monthly_returns_heatmap
 from lib.supabase_client import get_client, SOLO_USER_ID
 
 inject_css()
@@ -183,6 +185,58 @@ with col_right:
 </div>""")
     else:
         st.caption("News unavailable.")
+
+# ── Charts row: Monthly Heatmap + Allocation ──────────────────────────────────
+st.divider()
+chart_left, chart_right = st.columns([3, 2], gap="large")
+
+with chart_left:
+    st.html(section_header("Performance Heatmap", "Monthly returns by year"))
+    if not trades_df.empty:
+        @st.cache_data(ttl=3600)
+        def _equity_for_heatmap(trades_json: str):
+            return build_equity_curve(trades_json)
+
+        eq = _equity_for_heatmap(trades_df.to_json())
+        if not eq.empty and len(eq) > 5:
+            daily_rets = eq.pct_change().dropna()
+            st.plotly_chart(monthly_returns_heatmap(daily_rets), use_container_width=True)
+        else:
+            st.caption("Not enough trade history to render heatmap.")
+    else:
+        st.caption("Log trades to see your performance heatmap.")
+
+with chart_right:
+    st.html(section_header("Today's Allocation", "Portfolio by market value"))
+    if not positions.empty:
+        valid_pos = positions.copy()
+        valid_pos["market_value"] = valid_pos.apply(
+            lambda r: r["quantity"] * prices.get(r["symbol"], 0) if prices.get(r["symbol"]) else None, axis=1
+        )
+        valid_pos = valid_pos.dropna(subset=["market_value"])
+        if not valid_pos.empty:
+            _PALETTE = ["#00d4aa","#4a9eff","#f0b429","#9b72f8","#f17c4e","#4ef1c1","#f04f5a"]
+            fig_pie = go.Figure(go.Pie(
+                labels=valid_pos["symbol"],
+                values=valid_pos["market_value"],
+                hole=0.48,
+                marker=dict(colors=_PALETTE[:len(valid_pos)],
+                            line=dict(color="#0c0e14", width=2)),
+                textfont=dict(family="Space Grotesk, sans-serif", size=12, color="#e2e8f0"),
+            ))
+            fig_pie.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=10, r=10, t=10, b=10),
+                legend=dict(bgcolor="rgba(19,24,37,0.8)", bordercolor="#1d2437",
+                            font=dict(color="#8892a4", size=11)),
+                showlegend=True,
+            )
+            st.plotly_chart(fig_pie, use_container_width=True)
+        else:
+            st.caption("No live prices available for allocation chart.")
+    else:
+        st.caption("No open positions yet.")
 
 # ── Bottom: Watchlist snapshot ─────────────────────────────────────────────────
 st.divider()

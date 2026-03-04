@@ -31,8 +31,8 @@ _NAV_ITEMS = [
 ]
 
 _NAV_CSS = """<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-.vc-nav{position:fixed;top:0;left:0;right:0;height:52px;background:#161b2e;border-bottom:1px solid #1e2640;display:flex;align-items:center;padding:0 24px;z-index:99999;font-family:'Inter',-apple-system,sans-serif;box-sizing:border-box;gap:0;}
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+.vc-nav{position:fixed;top:0;left:0;right:0;height:52px;background:#131825;border-bottom:1px solid #1d2437;display:flex;align-items:center;padding:0 24px;z-index:99999;font-family:'Space Grotesk',-apple-system,sans-serif;box-sizing:border-box;gap:0;}
 .vc-logo{font-size:15px;font-weight:700;color:#e2e8f0;letter-spacing:-0.01em;white-space:nowrap;text-decoration:none !important;margin-right:32px;flex-shrink:0;}
 .vc-links{display:flex;align-items:center;gap:0;flex:1;height:100%;}
 .vc-a{color:#8892a4;font-size:14px;font-weight:500;padding:0 14px;height:52px;display:flex;align-items:center;text-decoration:none !important;border-bottom:2px solid transparent;transition:color 0.15s,border-color 0.15s;white-space:nowrap;box-sizing:border-box;}
