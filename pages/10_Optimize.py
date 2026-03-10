@@ -113,9 +113,9 @@ with col_cfg:
 
 with col_res:
     if not run:
-        st.markdown(info_banner(
+        st.html(info_banner(
             "⟵ Set your symbols and click <b>Optimize</b> to compute the efficient frontier.",
-            "#4e9af1"), unsafe_allow_html=True)
+            "#4e9af1"))
         st.stop()
 
     if len(symbols) < 2:
@@ -259,7 +259,7 @@ with col_res:
         )
 
         # Stats table
-        st.markdown(section_header("Portfolio Metrics Comparison"), unsafe_allow_html=True)
+        st.html(section_header("Portfolio Metrics Comparison"))
         stats_df = pd.DataFrame({
             name: {
                 "Ann. Return": f"{r*100:.2f}%",
@@ -292,7 +292,7 @@ with col_res:
         st.plotly_chart(fig3, use_container_width=True)
 
         # Rolling pairwise correlations
-        st.markdown(section_header("Rolling 60-Day Correlations"), unsafe_allow_html=True)
+        st.html(section_header("Rolling 60-Day Correlations"))
         pairs = [(a, b) for i, a in enumerate(symbols) for b in symbols[i+1:]]
         fig4 = go.Figure()
         palette = ["#00d4aa","#4e9af1","#f1c14e","#b44ef1","#f17c4e","#4ef1c1"]
@@ -312,7 +312,7 @@ with col_res:
         st.plotly_chart(fig4, use_container_width=True)
 
     with tab_sim:
-        st.markdown(section_header("Historical Return Distributions"), unsafe_allow_html=True)
+        st.html(section_header("Historical Return Distributions"))
 
         # Individual stock return distributions
         fig5 = go.Figure()

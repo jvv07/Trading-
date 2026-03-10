@@ -398,112 +398,110 @@ with tab_multi:
 
     if not compare_syms:
         st.info("Add comparison symbols in the sidebar (e.g. QQQ,IWM,GLD) to compare seasonal patterns.")
-        st.stop()
+    else:
+        @st.cache_data(ttl=86400)
+        def load_monthly_returns(sym: str, period: str) -> pd.Series:
+            raw = yf.download(sym, period=period, auto_adjust=True, progress=False)
+            if raw.empty:
+                return pd.Series(dtype=float)
+            if isinstance(raw.columns, pd.MultiIndex):
+                raw.columns = raw.columns.droplevel(1)
+            monthly = raw["Close"].resample("ME").last()
+            return monthly.pct_change().dropna()
 
-    @st.cache_data(ttl=86400)
-    def load_monthly_returns(sym: str, period: str) -> pd.Series:
-        raw = yf.download(sym, period=period, auto_adjust=True, progress=False)
-        if raw.empty:
-            return pd.Series(dtype=float)
-        if isinstance(raw.columns, pd.MultiIndex):
-            raw.columns = raw.columns.droplevel(1)
-        monthly = raw["Close"].resample("ME").last()
-        return monthly.pct_change().dropna()
+        # Load for all symbols
+        monthly_data = {}
+        for sym in all_syms:
+            s = load_monthly_returns(sym, period)
+            if not s.empty:
+                monthly_data[sym] = s
 
-    # Load for all symbols
-    monthly_data = {}
-    for sym in all_syms:
-        s = load_monthly_returns(sym, period)
-        if not s.empty:
-            monthly_data[sym] = s
-
-    if len(monthly_data) < 2:
-        st.warning("Could not load data for comparison symbols.")
-        st.stop()
-
-    # Monthly averages comparison
-    compare_dim = st.radio("Compare by", ["Month", "Quarter", "Day of Week"], horizontal=True)
-
-    fig_comp = go.Figure()
-    colors_comp = ["#4e9af1", "#00d4aa", "#f1c14e", "#ff4b4b", "#b44ef1", "#f17c4e"]
-
-    for i, (sym, s) in enumerate(monthly_data.items()):
-        s_df = s.reset_index()
-        s_df.columns = ["date", "return"]
-        s_df["month"]   = s_df["date"].dt.month
-        s_df["quarter"] = s_df["date"].dt.quarter
-        s_df["dow"]     = s_df["date"].dt.dayofweek
-
-        if compare_dim == "Month":
-            grp = s_df.groupby("month")["return"].mean() * 100
-            x_labels = MONTH_LABELS
-            x_vals = list(range(1, 13))
-        elif compare_dim == "Quarter":
-            grp = s_df.groupby("quarter")["return"].mean() * 100
-            x_labels = QUARTER_LABELS
-            x_vals = list(range(1, 5))
+        if len(monthly_data) < 2:
+            st.warning("Could not load data for comparison symbols.")
         else:
-            grp = s_df.groupby("dow")["return"].mean() * 100
-            x_labels = DOW_LABELS
-            x_vals = list(range(5))
+            # Monthly averages comparison
+            compare_dim = st.radio("Compare by", ["Month", "Quarter", "Day of Week"], horizontal=True)
 
-        y_vals = [float(grp.get(v, np.nan)) for v in x_vals]
-        fig_comp.add_trace(go.Scatter(
-            x=x_labels, y=y_vals, mode="lines+markers",
-            name=sym, line=dict(color=colors_comp[i % len(colors_comp)], width=2.5),
-            marker=dict(size=8)
-        ))
+            fig_comp = go.Figure()
+            colors_comp = ["#4e9af1", "#00d4aa", "#f1c14e", "#ff4b4b", "#b44ef1", "#f17c4e"]
 
-    fig_comp.add_hline(y=0, line_color="#555")
-    fig_comp.update_layout(
-        title=f"Average Return by {compare_dim} — Multi-Symbol Comparison",
-        yaxis_title="Avg Return (%)", yaxis_ticksuffix="%",
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font_color="#fafafa",
-        xaxis=dict(gridcolor="#2a2f3e"), yaxis=dict(gridcolor="#2a2f3e"),
-        legend=dict(bgcolor="rgba(0,0,0,0)"),
-    )
-    st.plotly_chart(fig_comp, use_container_width=True)
+            for i, (sym, s) in enumerate(monthly_data.items()):
+                s_df = s.reset_index()
+                s_df.columns = ["date", "return"]
+                s_df["month"]   = s_df["date"].dt.month
+                s_df["quarter"] = s_df["date"].dt.quarter
+                s_df["dow"]     = s_df["date"].dt.dayofweek
 
-    # Correlation matrix of monthly returns
-    st.subheader("Monthly Return Correlations")
-    all_monthly = pd.DataFrame({sym: monthly_data[sym] for sym in monthly_data}).dropna()
-    if len(all_monthly.columns) >= 2:
-        corr = all_monthly.corr()
-        fig_corr = go.Figure(go.Heatmap(
-            z=corr.values, x=corr.columns, y=corr.index,
-            colorscale=[[0, "#ff4b4b"], [0.5, "#1a1e2e"], [1, "#00d4aa"]],
-            zmid=0, zmin=-1, zmax=1,
-            text=[[f"{v:.2f}" for v in row] for row in corr.values],
-            texttemplate="%{text}",
-            colorbar=dict(title="Correlation"),
-        ))
-        fig_corr.update_layout(
-            title="Monthly Return Correlation Matrix",
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font_color="#fafafa",
-        )
-        st.plotly_chart(fig_corr, use_container_width=True)
+                if compare_dim == "Month":
+                    grp = s_df.groupby("month")["return"].mean() * 100
+                    x_labels = MONTH_LABELS
+                    x_vals = list(range(1, 13))
+                elif compare_dim == "Quarter":
+                    grp = s_df.groupby("quarter")["return"].mean() * 100
+                    x_labels = QUARTER_LABELS
+                    x_vals = list(range(1, 5))
+                else:
+                    grp = s_df.groupby("dow")["return"].mean() * 100
+                    x_labels = DOW_LABELS
+                    x_vals = list(range(5))
 
-    # Relative strength over time
-    st.subheader("Relative Performance Over Time")
-    all_monthly_cum = (1 + all_monthly).cumprod()
-    fig_rel = go.Figure()
-    for i, sym in enumerate(all_monthly_cum.columns):
-        fig_rel.add_trace(go.Scatter(
-            x=all_monthly_cum.index, y=all_monthly_cum[sym],
-            mode="lines", name=sym,
-            line=dict(color=colors_comp[i % len(colors_comp)], width=2)
-        ))
-    fig_rel.update_layout(
-        title="Cumulative Growth Comparison (Monthly Rebalanced)",
-        yaxis_title="Growth of $1",
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font_color="#fafafa",
-        xaxis=dict(gridcolor="#2a2f3e"), yaxis=dict(gridcolor="#2a2f3e"),
-        legend=dict(bgcolor="rgba(0,0,0,0)"),
-    )
-    st.plotly_chart(fig_rel, use_container_width=True)
+                y_vals = [float(grp.get(v, np.nan)) for v in x_vals]
+                fig_comp.add_trace(go.Scatter(
+                    x=x_labels, y=y_vals, mode="lines+markers",
+                    name=sym, line=dict(color=colors_comp[i % len(colors_comp)], width=2.5),
+                    marker=dict(size=8)
+                ))
+
+            fig_comp.add_hline(y=0, line_color="#555")
+            fig_comp.update_layout(
+                title=f"Average Return by {compare_dim} — Multi-Symbol Comparison",
+                yaxis_title="Avg Return (%)", yaxis_ticksuffix="%",
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font_color="#fafafa",
+                xaxis=dict(gridcolor="#2a2f3e"), yaxis=dict(gridcolor="#2a2f3e"),
+                legend=dict(bgcolor="rgba(0,0,0,0)"),
+            )
+            st.plotly_chart(fig_comp, use_container_width=True)
+
+            # Correlation matrix of monthly returns
+            st.subheader("Monthly Return Correlations")
+            all_monthly = pd.DataFrame({sym: monthly_data[sym] for sym in monthly_data}).dropna()
+            if len(all_monthly.columns) >= 2:
+                corr = all_monthly.corr()
+                fig_corr = go.Figure(go.Heatmap(
+                    z=corr.values, x=corr.columns, y=corr.index,
+                    colorscale=[[0, "#ff4b4b"], [0.5, "#1a1e2e"], [1, "#00d4aa"]],
+                    zmid=0, zmin=-1, zmax=1,
+                    text=[[f"{v:.2f}" for v in row] for row in corr.values],
+                    texttemplate="%{text}",
+                    colorbar=dict(title="Correlation"),
+                ))
+                fig_corr.update_layout(
+                    title="Monthly Return Correlation Matrix",
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    font_color="#fafafa",
+                )
+                st.plotly_chart(fig_corr, use_container_width=True)
+
+            # Relative strength over time
+            st.subheader("Relative Performance Over Time")
+            all_monthly_cum = (1 + all_monthly).cumprod()
+            fig_rel = go.Figure()
+            for i, sym in enumerate(all_monthly_cum.columns):
+                fig_rel.add_trace(go.Scatter(
+                    x=all_monthly_cum.index, y=all_monthly_cum[sym],
+                    mode="lines", name=sym,
+                    line=dict(color=colors_comp[i % len(colors_comp)], width=2)
+                ))
+            fig_rel.update_layout(
+                title="Cumulative Growth Comparison (Monthly Rebalanced)",
+                yaxis_title="Growth of $1",
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font_color="#fafafa",
+                xaxis=dict(gridcolor="#2a2f3e"), yaxis=dict(gridcolor="#2a2f3e"),
+                legend=dict(bgcolor="rgba(0,0,0,0)"),
+            )
+            st.plotly_chart(fig_rel, use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

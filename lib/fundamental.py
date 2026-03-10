@@ -178,6 +178,113 @@ def get_sector_peers(sector: str, current_ticker: str) -> list:
 # ── Data fetching ─────────────────────────────────────────────────────────────
 
 @st.cache_data(ttl=3600)
+def fetch_all_ticker_data(ticker: str) -> dict:
+    """
+    Fetch ALL yfinance data in a single Ticker instance to avoid rate-limiting.
+    Returns {"info", "financials", "holders", "market_data"}.
+    """
+    result = {
+        "info": {},
+        "financials": _empty_financials(),
+        "holders": {
+            "institutional": pd.DataFrame(),
+            "major": pd.DataFrame(),
+            "insider_tx": pd.DataFrame(),
+        },
+        "market_data": {
+            "recommendations": pd.DataFrame(),
+            "upgrades": pd.DataFrame(),
+            "news": [],
+            "dividends": pd.Series(dtype=float),
+        },
+    }
+    try:
+        t = yf.Ticker(ticker)
+
+        # ── info ──────────────────────────────────────────────────────────────
+        try:
+            info = t.info or {}
+            try:
+                fi = t.fast_info
+                if not info.get("currentPrice") and not info.get("regularMarketPrice"):
+                    info["currentPrice"] = getattr(fi, "last_price", None)
+                if not info.get("previousClose"):
+                    info["previousClose"] = getattr(fi, "previous_close", None)
+                if not info.get("marketCap"):
+                    info["marketCap"] = getattr(fi, "market_cap", None)
+                if not info.get("fiftyTwoWeekHigh"):
+                    info["fiftyTwoWeekHigh"] = getattr(fi, "year_high", None)
+                if not info.get("fiftyTwoWeekLow"):
+                    info["fiftyTwoWeekLow"] = getattr(fi, "year_low", None)
+                if not info.get("sharesOutstanding"):
+                    info["sharesOutstanding"] = getattr(fi, "shares", None)
+            except Exception:
+                pass
+            result["info"] = info
+        except Exception:
+            try:
+                fi = t.fast_info
+                result["info"] = {
+                    "currentPrice":      getattr(fi, "last_price", None),
+                    "previousClose":     getattr(fi, "previous_close", None),
+                    "marketCap":         getattr(fi, "market_cap", None),
+                    "fiftyTwoWeekHigh":  getattr(fi, "year_high", None),
+                    "fiftyTwoWeekLow":   getattr(fi, "year_low", None),
+                    "sharesOutstanding": getattr(fi, "shares", None),
+                }
+            except Exception:
+                pass
+
+        # ── financials ────────────────────────────────────────────────────────
+        try:
+            result["financials"] = {
+                "annual_income":    _get_df(t, ["income_stmt", "financials"]),
+                "quarterly_income": _get_df(t, ["quarterly_income_stmt", "quarterly_financials"]),
+                "annual_bs":        _get_df(t, ["balance_sheet"]),
+                "quarterly_bs":     _get_df(t, ["quarterly_balance_sheet"]),
+                "annual_cf":        _get_df(t, ["cash_flow", "cashflow"]),
+                "quarterly_cf":     _get_df(t, ["quarterly_cash_flow", "quarterly_cashflow"]),
+            }
+        except Exception:
+            pass
+
+        # ── holders ───────────────────────────────────────────────────────────
+        for key, attr in [
+            ("institutional", "institutional_holders"),
+            ("major",         "major_holders"),
+            ("insider_tx",    "insider_transactions"),
+        ]:
+            try:
+                result["holders"][key] = _safe_df(getattr(t, attr))
+            except Exception:
+                pass
+
+        # ── market data ───────────────────────────────────────────────────────
+        for key, attr in [
+            ("recommendations", "recommendations"),
+            ("upgrades",        "upgrades_downgrades"),
+        ]:
+            try:
+                result["market_data"][key] = _safe_df(getattr(t, attr))
+            except Exception:
+                pass
+        try:
+            result["market_data"]["news"] = t.news or []
+        except Exception:
+            pass
+        try:
+            divs = t.dividends
+            result["market_data"]["dividends"] = divs if divs is not None else pd.Series(dtype=float)
+        except Exception:
+            pass
+
+    except Exception:
+        pass
+
+    return result
+
+
+@st.cache_data(ttl=3600)
 def fetch_info(ticker: str) -> dict:
     try:
         t = yf.Ticker(ticker)

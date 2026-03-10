@@ -65,16 +65,19 @@ with res_col:
             st.error(f"Backtest failed: {e}")
             st.stop()
 
-    # Save to DB
-    client.table("backtest_runs").insert({
-        "user_id": SOLO_USER_ID,
-        "strategy_name": strategy_name,
-        "symbol": symbol,
-        "params": params,
-        "start_date": str(start_date),
-        "end_date": str(end_date),
-        "metrics": result["metrics"],
-    }).execute()
+    # Save to DB (optional table — skip if not yet migrated)
+    try:
+        client.table("backtest_runs").insert({
+            "user_id": SOLO_USER_ID,
+            "strategy_name": strategy_name,
+            "symbol": symbol,
+            "params": params,
+            "start_date": str(start_date),
+            "end_date": str(end_date),
+            "metrics": result["metrics"],
+        }).execute()
+    except Exception:
+        pass
 
     # KPI row
     st.subheader(f"Results — {strategy_name} on {symbol}")

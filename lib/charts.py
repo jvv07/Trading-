@@ -34,8 +34,13 @@ _layout = dict(
     legend=dict(bgcolor="rgba(26,29,39,0.8)", bordercolor=GRID,
                 font=dict(color=FONT, size=11)),
     margin=dict(l=10, r=10, t=40, b=10),
-    title=dict(font=dict(color=FONT1, size=14, family="Inter, sans-serif")),
 )
+
+_TITLE_FONT = dict(color=FONT1, size=14, family="Inter, sans-serif")
+
+
+def _title(text: str) -> dict:
+    return dict(text=text, font=_TITLE_FONT)
 
 
 def equity_curve(series_dict: dict, title: str = "Equity Curve") -> go.Figure:
@@ -49,7 +54,7 @@ def equity_curve(series_dict: dict, title: str = "Equity Curve") -> go.Figure:
             mode="lines",
             line=dict(color=color, width=2),
         ))
-    fig.update_layout(title=title, yaxis_tickprefix="$", **_layout)
+    fig.update_layout(title=_title(title), yaxis_tickprefix="$", **_layout)
     return fig
 
 
@@ -63,7 +68,7 @@ def drawdown_chart(equity: pd.Series, title: str = "Drawdown") -> go.Figure:
         fillcolor=f"rgba(255,75,75,0.2)",
         name="Drawdown",
     ))
-    fig.update_layout(title=title, yaxis_ticksuffix="%", **_layout)
+    fig.update_layout(title=_title(title), yaxis_ticksuffix="%", **_layout)
     return fig
 
 
@@ -92,7 +97,7 @@ def monthly_returns_heatmap(returns: pd.Series, title: str = "Monthly Returns") 
         showscale=True,
         colorbar=dict(ticksuffix="%"),
     ))
-    fig.update_layout(title=title, **_layout)
+    fig.update_layout(title=_title(title), **_layout)
     return fig
 
 
@@ -106,7 +111,7 @@ def rolling_sharpe_chart(returns: pd.Series, window: int = 63, title: str = "Rol
     ))
     fig.add_hline(y=0, line_dash="dash", line_color=GRID)
     fig.add_hline(y=1, line_dash="dot", line_color=TEAL, annotation_text="Sharpe=1")
-    fig.update_layout(title=title, **_layout)
+    fig.update_layout(title=_title(title), **_layout)
     return fig
 
 
@@ -121,7 +126,7 @@ def return_distribution(returns: pd.Series, title: str = "Daily Return Distribut
     ))
     fig.add_vline(x=0, line_dash="dash", line_color=FONT)
     fig.add_vline(x=r.mean(), line_color=TEAL, annotation_text=f"Mean {r.mean():.2f}%")
-    fig.update_layout(title=title, xaxis_ticksuffix="%", **_layout)
+    fig.update_layout(title=_title(title), xaxis_ticksuffix="%", **_layout)
     return fig
 
 
@@ -196,7 +201,7 @@ def correlation_heatmap(corr_matrix: pd.DataFrame, title: str = "Correlation Mat
         zmin=-1, zmax=1, zmid=0,
         showscale=True,
     ))
-    fig.update_layout(title=title, **_layout)
+    fig.update_layout(title=_title(title), **_layout)
     return fig
 
 
@@ -204,7 +209,7 @@ def bar_by_category(data: pd.Series, title: str, xlabel: str = "", ylabel: str =
     colors = [TEAL if v >= 0 else RED for v in data.values]
     fig = go.Figure(go.Bar(x=data.index, y=data.values, marker_color=colors))
     fig.update_layout(
-        title=title,
+        title=_title(title),
         xaxis_title=xlabel,
         yaxis_tickprefix=ylabel if ylabel == "$" else "",
         yaxis_ticksuffix=ylabel if ylabel != "$" else "",

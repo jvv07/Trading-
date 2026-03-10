@@ -55,35 +55,39 @@ with tab_port:
     # Load portfolio or custom input
     input_mode = st.radio("Portfolio Source", ["My Portfolio (from trades)", "Custom Allocation"], horizontal=True)
 
+    symbols, weights, initial_capital = [], np.array([]), 10000
+    _port_ready = True
     if input_mode == "My Portfolio (from trades)":
         trades_df = get_trades_df()
         positions = compute_positions(trades_df)
         if positions.empty:
             st.info("No open positions. Log trades first or use Custom Allocation.")
-            st.stop()
-        prices = fetch_current_prices(positions["symbol"].tolist())
-        positions["market_value"] = positions.apply(
-            lambda r: r["quantity"] * prices.get(r["symbol"], r["avg_cost"]), axis=1
-        )
-        total_mv = positions["market_value"].sum()
-        positions["weight"] = positions["market_value"] / total_mv
-        symbols  = positions["symbol"].tolist()
-        weights  = positions["weight"].values
-        initial_capital = st.number_input("Initial Portfolio Value ($)", value=int(total_mv), min_value=100, step=1000)
+            _port_ready = False
+        else:
+            prices = fetch_current_prices(positions["symbol"].tolist())
+            positions["market_value"] = positions.apply(
+                lambda r: r["quantity"] * prices.get(r["symbol"], r["avg_cost"]), axis=1
+            )
+            total_mv = positions["market_value"].sum()
+            positions["weight"] = positions["market_value"] / total_mv
+            symbols  = positions["symbol"].tolist()
+            weights  = positions["weight"].values
+            initial_capital = st.number_input("Initial Portfolio Value ($)", value=int(total_mv), min_value=100, step=1000)
     else:
         tickers_raw = st.text_input("Tickers (comma-separated)", value="AAPL,MSFT,GOOGL,AMZN,SPY")
         symbols = [t.strip().upper() for t in tickers_raw.split(",") if t.strip()]
         if not symbols:
             st.info("Enter at least one ticker.")
-            st.stop()
-        alloc_cols = st.columns(min(len(symbols), 5))
-        raw_weights = []
-        for i, sym in enumerate(symbols):
-            w = alloc_cols[i % 5].number_input(f"{sym} %", 0.0, 100.0, 100.0 / len(symbols), 1.0, key=f"w_{sym}")
-            raw_weights.append(w)
-        total_w = sum(raw_weights)
-        weights = np.array(raw_weights) / total_w if total_w > 0 else np.ones(len(symbols)) / len(symbols)
-        initial_capital = st.number_input("Initial Capital ($)", value=10000, min_value=100, step=1000)
+            _port_ready = False
+        else:
+            alloc_cols = st.columns(min(len(symbols), 5))
+            raw_weights = []
+            for i, sym in enumerate(symbols):
+                w = alloc_cols[i % 5].number_input(f"{sym} %", 0.0, 100.0, 100.0 / len(symbols), 1.0, key=f"w_{sym}")
+                raw_weights.append(w)
+            total_w = sum(raw_weights)
+            weights = np.array(raw_weights) / total_w if total_w > 0 else np.ones(len(symbols)) / len(symbols)
+            initial_capital = st.number_input("Initial Capital ($)", value=10000, min_value=100, step=1000)
 
     hist_period = st.selectbox("Historical Period for Parameters", ["1y", "2y", "3y", "5y"], index=2, key="port_hist")
 
@@ -99,6 +103,7 @@ with tab_port:
         return closes.pct_change().dropna()
 
     if st.button("Run Portfolio Simulation", type="primary", key="run_port"):
+        _paths = None
         with st.spinner(f"Running {n_sims:,} simulations × {n_days} trading days..."):
             ret_df = load_port_returns(",".join(symbols), hist_period)
 
@@ -106,170 +111,171 @@ with tab_port:
             avail = [s for s in symbols if s in ret_df.columns]
             if not avail:
                 st.error("No return data available.")
-                st.stop()
-            avail_weights = np.array([weights[symbols.index(s)] for s in avail])
-            avail_weights /= avail_weights.sum()
-            ret_df = ret_df[avail]
+            else:
+                avail_weights = np.array([weights[symbols.index(s)] for s in avail])
+                avail_weights /= avail_weights.sum()
+                ret_df = ret_df[avail]
 
-            port_hist_returns = (ret_df * avail_weights).sum(axis=1).values
-            mu_daily  = ret_df.mean().values
-            cov_daily = ret_df.cov().values
-            annual_withdrawal_daily = withdrawal / 252
+                port_hist_returns = (ret_df * avail_weights).sum(axis=1).values
+                mu_daily  = ret_df.mean().values
+                cov_daily = ret_df.cov().values
+                annual_withdrawal_daily = withdrawal / 252
 
-            def simulate(method_name: str) -> np.ndarray:
-                paths = np.zeros((n_sims, n_days + 1))
-                paths[:, 0] = initial_capital
-                rng = np.random.default_rng(42)
+                def simulate(method_name: str) -> np.ndarray:
+                    paths = np.zeros((n_sims, n_days + 1))
+                    paths[:, 0] = initial_capital
+                    rng = np.random.default_rng(42)
 
-                if method_name.startswith("Bootstrap"):
-                    for i in range(n_sims):
-                        idx = rng.integers(0, len(port_hist_returns), n_days)
-                        daily_r = port_hist_returns[idx]
-                        cum = initial_capital
-                        for d, r in enumerate(daily_r):
-                            cum = cum * (1 + r) - annual_withdrawal_daily
-                            paths[i, d + 1] = max(cum, 0)
-                elif method_name.startswith("Parametric"):
-                    try:
-                        L = np.linalg.cholesky(cov_daily + 1e-9 * np.eye(len(avail)))
-                    except np.linalg.LinAlgError:
-                        L = np.linalg.cholesky(
-                            cov_daily + 1e-7 * np.eye(len(avail))
-                        )
-                    for i in range(n_sims):
-                        z = rng.standard_normal((n_days, len(avail)))
-                        sim_ret = z @ L.T + mu_daily
-                        pr = (sim_ret * avail_weights).sum(axis=1)
-                        cum = initial_capital
-                        for d, r in enumerate(pr):
-                            cum = cum * (1 + r) - annual_withdrawal_daily
-                            paths[i, d + 1] = max(cum, 0)
-                else:  # GARCH-like
-                    hist_vol = np.std(port_hist_returns)
-                    hist_mean = np.mean(port_hist_returns)
-                    alpha, beta_g = 0.10, 0.85
-                    omega = hist_vol ** 2 * (1 - alpha - beta_g)
-                    for i in range(n_sims):
-                        vol = hist_vol
-                        cum = initial_capital
-                        for d in range(n_days):
-                            r = hist_mean + vol * rng.standard_normal()
-                            vol = np.sqrt(omega + alpha * r ** 2 + beta_g * vol ** 2)
-                            cum = cum * (1 + r) - annual_withdrawal_daily
-                            paths[i, d + 1] = max(cum, 0)
-                return paths
+                    if method_name.startswith("Bootstrap"):
+                        for i in range(n_sims):
+                            idx = rng.integers(0, len(port_hist_returns), n_days)
+                            daily_r = port_hist_returns[idx]
+                            cum = initial_capital
+                            for d, r in enumerate(daily_r):
+                                cum = cum * (1 + r) - annual_withdrawal_daily
+                                paths[i, d + 1] = max(cum, 0)
+                    elif method_name.startswith("Parametric"):
+                        try:
+                            L = np.linalg.cholesky(cov_daily + 1e-9 * np.eye(len(avail)))
+                        except np.linalg.LinAlgError:
+                            L = np.linalg.cholesky(
+                                cov_daily + 1e-7 * np.eye(len(avail))
+                            )
+                        for i in range(n_sims):
+                            z = rng.standard_normal((n_days, len(avail)))
+                            sim_ret = z @ L.T + mu_daily
+                            pr = (sim_ret * avail_weights).sum(axis=1)
+                            cum = initial_capital
+                            for d, r in enumerate(pr):
+                                cum = cum * (1 + r) - annual_withdrawal_daily
+                                paths[i, d + 1] = max(cum, 0)
+                    else:  # GARCH-like
+                        hist_vol = np.std(port_hist_returns)
+                        hist_mean = np.mean(port_hist_returns)
+                        alpha, beta_g = 0.10, 0.85
+                        omega = hist_vol ** 2 * (1 - alpha - beta_g)
+                        for i in range(n_sims):
+                            vol = hist_vol
+                            cum = initial_capital
+                            for d in range(n_days):
+                                r = hist_mean + vol * rng.standard_normal()
+                                vol = np.sqrt(omega + alpha * r ** 2 + beta_g * vol ** 2)
+                                cum = cum * (1 + r) - annual_withdrawal_daily
+                                paths[i, d + 1] = max(cum, 0)
+                    return paths
 
-            paths = simulate(method)
+                _paths = simulate(method)
 
-        # ── Plot fan chart ─────────────────────────────────────────────────────
-        days_axis = np.arange(n_days + 1)
-        years_axis = days_axis / 252
+        if _paths is not None:
+            # ── Plot fan chart ─────────────────────────────────────────────────────
+            days_axis = np.arange(n_days + 1)
+            years_axis = days_axis / 252
 
-        fig = go.Figure()
-        pct_pairs = sorted([(min(a, 100-a), max(a, 100-a)) for a in conf_levels if a < 50])
-        fill_colors = ["rgba(78,154,241,0.08)", "rgba(78,154,241,0.14)",
-                        "rgba(78,154,241,0.20)", "rgba(78,154,241,0.26)"]
+            fig = go.Figure()
+            pct_pairs = sorted([(min(a, 100-a), max(a, 100-a)) for a in conf_levels if a < 50])
+            fill_colors = ["rgba(78,154,241,0.08)", "rgba(78,154,241,0.14)",
+                            "rgba(78,154,241,0.20)", "rgba(78,154,241,0.26)"]
 
-        for i, (lo, hi) in enumerate(pct_pairs):
-            lo_vals = np.percentile(paths, lo, axis=0)
-            hi_vals = np.percentile(paths, hi, axis=0)
-            fill_c = fill_colors[min(i, len(fill_colors)-1)]
-            fig.add_trace(go.Scatter(
-                x=np.concatenate([years_axis, years_axis[::-1]]),
-                y=np.concatenate([hi_vals, lo_vals[::-1]]),
-                fill="toself", fillcolor=fill_c,
-                line=dict(width=0), name=f"P{lo}–P{hi}",
-                hoverinfo="skip",
+            for i, (lo, hi) in enumerate(pct_pairs):
+                lo_vals = np.percentile(_paths, lo, axis=0)
+                hi_vals = np.percentile(_paths, hi, axis=0)
+                fill_c = fill_colors[min(i, len(fill_colors)-1)]
+                fig.add_trace(go.Scatter(
+                    x=np.concatenate([years_axis, years_axis[::-1]]),
+                    y=np.concatenate([hi_vals, lo_vals[::-1]]),
+                    fill="toself", fillcolor=fill_c,
+                    line=dict(width=0), name=f"P{lo}–P{hi}",
+                    hoverinfo="skip",
+                ))
+
+            median = np.percentile(_paths, 50, axis=0)
+            p5 = np.percentile(_paths, 5, axis=0)
+            p95 = np.percentile(_paths, 95, axis=0)
+
+            fig.add_trace(go.Scatter(x=years_axis, y=median, name="Median",
+                                      line=dict(color="#4e9af1", width=2.5)))
+            fig.add_trace(go.Scatter(x=years_axis, y=p95, name="P95",
+                                      line=dict(color="#00d4aa", width=1.5, dash="dash")))
+            fig.add_trace(go.Scatter(x=years_axis, y=p5, name="P5",
+                                      line=dict(color="#ff4b4b", width=1.5, dash="dash")))
+
+            # Plot 50 sample paths (thin)
+            rng_sample = np.random.default_rng(0)
+            sample_idx = rng_sample.choice(n_sims, size=min(50, n_sims), replace=False)
+            for idx in sample_idx:
+                fig.add_trace(go.Scatter(
+                    x=years_axis, y=_paths[idx],
+                    line=dict(color="rgba(150,150,150,0.12)", width=0.8),
+                    showlegend=False, hoverinfo="skip"
+                ))
+
+            if target_return > 0:
+                fig.add_hline(y=target_return, line_color="#f1c14e", line_dash="dash",
+                               annotation_text=f"Target ${target_return:,.0f}")
+
+            fig.add_hline(y=initial_capital, line_color="#666", line_width=1, line_dash="dot")
+
+            fig.update_layout(
+                title=f"Portfolio Monte Carlo — {n_sims:,} Simulations over {horizon}",
+                xaxis_title="Years", yaxis_title="Portfolio Value ($)",
+                yaxis_tickprefix="$", yaxis_tickformat=",.0f",
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font_color="#fafafa", height=550,
+                xaxis=dict(gridcolor="#2a2f3e"), yaxis=dict(gridcolor="#2a2f3e"),
+                legend=dict(bgcolor="rgba(0,0,0,0)"),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+            # ── Statistics ────────────────────────────────────────────────────────
+            final = _paths[:, -1]
+            st.subheader("Simulation Statistics")
+            mc1, mc2, mc3, mc4, mc5 = st.columns(5)
+            mc1.metric("Median Final Value", f"${np.median(final):,.0f}")
+            mc2.metric("P5 (Worst 5%)", f"${np.percentile(final, 5):,.0f}")
+            mc3.metric("P95 (Best 5%)", f"${np.percentile(final, 95):,.0f}")
+            pct_positive = (final > initial_capital).mean() * 100
+            mc4.metric("Prob. of Profit", f"{pct_positive:.1f}%")
+            if target_return > 0:
+                prob_target = (final >= target_return).mean() * 100
+                mc5.metric(f"Prob. ≥ ${target_return:,.0f}", f"{prob_target:.1f}%")
+            else:
+                median_cagr = ((np.median(final) / initial_capital) ** (1/(n_days/252)) - 1) * 100
+                mc5.metric("Median CAGR", f"{median_cagr:.2f}%")
+
+            # Terminal value distribution
+            fig_dist = go.Figure()
+            fig_dist.add_trace(go.Histogram(
+                x=final, nbinsx=80,
+                marker_color="#4e9af1", opacity=0.75, name="Terminal Values"
             ))
+            fig_dist.add_vline(x=np.median(final), line_color="#f1c14e", line_dash="dash",
+                                annotation_text="Median")
+            fig_dist.add_vline(x=np.percentile(final, 5), line_color="#ff4b4b", line_dash="dot",
+                                annotation_text="P5")
+            fig_dist.add_vline(x=initial_capital, line_color="#888", line_dash="dot",
+                                annotation_text="Initial")
+            if target_return > 0:
+                fig_dist.add_vline(x=target_return, line_color="#00d4aa", line_dash="dash",
+                                    annotation_text="Target")
+            fig_dist.update_layout(
+                title=f"Distribution of Terminal Values after {horizon}",
+                xaxis_title="Portfolio Value ($)", yaxis_title="Frequency",
+                xaxis_tickprefix="$", xaxis_tickformat=",.0f",
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font_color="#fafafa",
+                xaxis=dict(gridcolor="#2a2f3e"), yaxis=dict(gridcolor="#2a2f3e"),
+            )
+            st.plotly_chart(fig_dist, use_container_width=True)
 
-        median = np.percentile(paths, 50, axis=0)
-        p5 = np.percentile(paths, 5, axis=0)
-        p95 = np.percentile(paths, 95, axis=0)
-
-        fig.add_trace(go.Scatter(x=years_axis, y=median, name="Median",
-                                  line=dict(color="#4e9af1", width=2.5)))
-        fig.add_trace(go.Scatter(x=years_axis, y=p95, name="P95",
-                                  line=dict(color="#00d4aa", width=1.5, dash="dash")))
-        fig.add_trace(go.Scatter(x=years_axis, y=p5, name="P5",
-                                  line=dict(color="#ff4b4b", width=1.5, dash="dash")))
-
-        # Plot 50 sample paths (thin)
-        rng_sample = np.random.default_rng(0)
-        sample_idx = rng_sample.choice(n_sims, size=min(50, n_sims), replace=False)
-        for idx in sample_idx:
-            fig.add_trace(go.Scatter(
-                x=years_axis, y=paths[idx],
-                line=dict(color="rgba(150,150,150,0.12)", width=0.8),
-                showlegend=False, hoverinfo="skip"
-            ))
-
-        if target_return > 0:
-            fig.add_hline(y=target_return, line_color="#f1c14e", line_dash="dash",
-                           annotation_text=f"Target ${target_return:,.0f}")
-
-        fig.add_hline(y=initial_capital, line_color="#666", line_width=1, line_dash="dot")
-
-        fig.update_layout(
-            title=f"Portfolio Monte Carlo — {n_sims:,} Simulations over {horizon}",
-            xaxis_title="Years", yaxis_title="Portfolio Value ($)",
-            yaxis_tickprefix="$", yaxis_tickformat=",.0f",
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font_color="#fafafa", height=550,
-            xaxis=dict(gridcolor="#2a2f3e"), yaxis=dict(gridcolor="#2a2f3e"),
-            legend=dict(bgcolor="rgba(0,0,0,0)"),
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-        # ── Statistics ────────────────────────────────────────────────────────
-        final = paths[:, -1]
-        st.subheader("Simulation Statistics")
-        mc1, mc2, mc3, mc4, mc5 = st.columns(5)
-        mc1.metric("Median Final Value", f"${np.median(final):,.0f}")
-        mc2.metric("P5 (Worst 5%)", f"${np.percentile(final, 5):,.0f}")
-        mc3.metric("P95 (Best 5%)", f"${np.percentile(final, 95):,.0f}")
-        pct_positive = (final > initial_capital).mean() * 100
-        mc4.metric("Prob. of Profit", f"{pct_positive:.1f}%")
-        if target_return > 0:
-            prob_target = (final >= target_return).mean() * 100
-            mc5.metric(f"Prob. ≥ ${target_return:,.0f}", f"{prob_target:.1f}%")
-        else:
-            median_cagr = ((np.median(final) / initial_capital) ** (1/(n_days/252)) - 1) * 100
-            mc5.metric("Median CAGR", f"{median_cagr:.2f}%")
-
-        # Terminal value distribution
-        fig_dist = go.Figure()
-        fig_dist.add_trace(go.Histogram(
-            x=final, nbinsx=80,
-            marker_color="#4e9af1", opacity=0.75, name="Terminal Values"
-        ))
-        fig_dist.add_vline(x=np.median(final), line_color="#f1c14e", line_dash="dash",
-                            annotation_text="Median")
-        fig_dist.add_vline(x=np.percentile(final, 5), line_color="#ff4b4b", line_dash="dot",
-                            annotation_text="P5")
-        fig_dist.add_vline(x=initial_capital, line_color="#888", line_dash="dot",
-                            annotation_text="Initial")
-        if target_return > 0:
-            fig_dist.add_vline(x=target_return, line_color="#00d4aa", line_dash="dash",
-                                annotation_text="Target")
-        fig_dist.update_layout(
-            title=f"Distribution of Terminal Values after {horizon}",
-            xaxis_title="Portfolio Value ($)", yaxis_title="Frequency",
-            xaxis_tickprefix="$", xaxis_tickformat=",.0f",
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            font_color="#fafafa",
-            xaxis=dict(gridcolor="#2a2f3e"), yaxis=dict(gridcolor="#2a2f3e"),
-        )
-        st.plotly_chart(fig_dist, use_container_width=True)
-
-        # Percentile table
-        pcts = [1, 5, 10, 25, 50, 75, 90, 95, 99]
-        perc_df = pd.DataFrame({
-            "Percentile": [f"P{p}" for p in pcts],
-            "Terminal Value": [f"${np.percentile(final, p):,.0f}" for p in pcts],
-            "CAGR": [f"{((np.percentile(final, p)/initial_capital)**(1/(n_days/252))-1)*100:.2f}%" for p in pcts],
-            "Total Return": [f"{(np.percentile(final, p)/initial_capital-1)*100:.1f}%" for p in pcts],
-        })
-        st.dataframe(perc_df, hide_index=True, use_container_width=True)
+            # Percentile table
+            pcts = [1, 5, 10, 25, 50, 75, 90, 95, 99]
+            perc_df = pd.DataFrame({
+                "Percentile": [f"P{p}" for p in pcts],
+                "Terminal Value": [f"${np.percentile(final, p):,.0f}" for p in pcts],
+                "CAGR": [f"{((np.percentile(final, p)/initial_capital)**(1/(n_days/252))-1)*100:.2f}%" for p in pcts],
+                "Total Return": [f"{(np.percentile(final, p)/initial_capital-1)*100:.1f}%" for p in pcts],
+            })
+            st.dataframe(perc_df, hide_index=True, use_container_width=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

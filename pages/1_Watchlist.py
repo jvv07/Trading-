@@ -13,6 +13,7 @@ from lib.style import (
 )
 from lib.nav import render_nav
 from lib.fundamental import (
+    fetch_all_ticker_data,
     fetch_info, fetch_financials, fetch_holders, fetch_market_data,
     fetch_peer_info, fetch_fmp, get_fmp_key, safe_get, format_large,
     bs_row, _first_val,
@@ -204,10 +205,11 @@ _load_error = None
 
 with st.spinner(f"Loading {selected_sym} report…"):
     try:
-        info       = fetch_info(selected_sym)
-        financials = fetch_financials(selected_sym)
-        holders    = fetch_holders(selected_sym)
-        market_d   = fetch_market_data(selected_sym)
+        _all       = fetch_all_ticker_data(selected_sym)
+        info       = _all["info"]
+        financials = _all["financials"]
+        holders    = _all["holders"]
+        market_d   = _all["market_data"]
         fmp_data   = fetch_fmp(selected_sym)
     except Exception as _e:
         _load_error = str(_e)
