@@ -20,20 +20,18 @@ render_nav("Monte Carlo")
 st.title("Monte Carlo Simulation")
 st.caption("Probabilistic forecasting of portfolio and strategy performance using thousands of simulated paths.")
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.subheader("⚙ Simulation Settings")
-    n_sims   = st.select_slider("Simulations", [500, 1000, 2000, 5000, 10000], value=2000)
-    horizon  = st.selectbox("Horizon", ["1 Year", "2 Years", "5 Years", "10 Years", "20 Years", "30 Years"], index=2)
-    method   = st.radio("Method", ["Bootstrap (Historical)", "Parametric (Cholesky)", "GARCH-like (Volatility Clustering)"])
-    conf_levels = st.multiselect("Confidence Bands", [5, 10, 25, 75, 90, 95], default=[5, 25, 75, 95])
-    st.divider()
-    target_return = st.number_input("Target Portfolio Value ($)", value=0, min_value=0, step=1000,
-                                     help="Set to 0 to skip probability calculation")
-    withdrawal = st.number_input("Annual Withdrawal ($)", value=0, min_value=0, step=1000,
-                                  help="Simulates annual withdrawals (retirement mode)")
-    st.divider()
-    st.caption("Bootstrap: resamples historical returns.\nParametric: multivariate-normal with full covariance.\nGARCH-like: adds volatility clustering.")
+# ── Inline controls ───────────────────────────────────────────────────────────
+with st.expander("⚙ Simulation Settings", expanded=True):
+    _mc1, _mc2, _mc3 = st.columns(3)
+    n_sims      = _mc1.select_slider("Simulations", [500, 1000, 2000, 5000, 10000], value=2000)
+    horizon     = _mc1.selectbox("Horizon", ["1 Year", "2 Years", "5 Years", "10 Years", "20 Years", "30 Years"], index=2)
+    method      = _mc2.radio("Method", ["Bootstrap (Historical)", "Parametric (Cholesky)", "GARCH-like (Volatility Clustering)"])
+    conf_levels = _mc2.multiselect("Confidence Bands", [5, 10, 25, 75, 90, 95], default=[5, 25, 75, 95])
+    target_return = _mc3.number_input("Target Portfolio Value ($)", value=0, min_value=0, step=1000,
+                                      help="Set to 0 to skip probability calculation")
+    withdrawal    = _mc3.number_input("Annual Withdrawal ($)", value=0, min_value=0, step=1000,
+                                      help="Simulates annual withdrawals (retirement mode)")
+    _mc3.caption("Bootstrap: resamples historical returns.\nParametric: multivariate-normal with full covariance.\nGARCH-like: adds volatility clustering.")
 
 horizon_days_map = {
     "1 Year": 252, "2 Years": 504, "5 Years": 1260,
@@ -102,7 +100,7 @@ with tab_port:
             closes.columns = syms
         return closes.pct_change().dropna()
 
-    if st.button("Run Portfolio Simulation", type="primary", key="run_port"):
+    if _port_ready and st.button("Run Portfolio Simulation", type="primary", key="run_port"):
         _paths = None
         with st.spinner(f"Running {n_sims:,} simulations × {n_days} trading days..."):
             ret_df = load_port_returns(",".join(symbols), hist_period)

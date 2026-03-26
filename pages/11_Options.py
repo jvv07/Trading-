@@ -68,13 +68,12 @@ def implied_vol(mkt_price: float, S: float, K: float, T: float, r: float, opt: s
         return np.nan
 
 
-# ── Sidebar controls ──────────────────────────────────────────────────────────
-with st.sidebar:
-    st.subheader("⚙ Settings")
-    symbol = st.text_input("Ticker", value="AAPL").upper().strip()
-    risk_free = st.slider("Risk-Free Rate (%)", 0.0, 10.0, 4.5, 0.1) / 100
-    st.divider()
-    st.caption("Options data via yfinance. Greeks computed with Black-Scholes.")
+# ── Inline controls ───────────────────────────────────────────────────────────
+with st.expander("⚙ Settings", expanded=True):
+    _oc1, _oc2, _oc3 = st.columns([2, 2, 3])
+    symbol = _oc1.text_input("Ticker", value="AAPL").upper().strip()
+    risk_free = _oc2.slider("Risk-Free Rate (%)", 0.0, 10.0, 4.5, 0.1) / 100
+    _oc3.caption("Options data via yfinance. Greeks computed with Black-Scholes.")
 
 # ── Load ticker ───────────────────────────────────────────────────────────────
 @st.cache_data(ttl=300)

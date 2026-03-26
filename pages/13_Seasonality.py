@@ -16,18 +16,16 @@ render_nav("Seasonality")
 st.title("Seasonality Analysis")
 st.caption("Discover recurring seasonal patterns in stocks and indices across time dimensions.")
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.subheader("⚙ Settings")
-    symbol = st.text_input("Primary Symbol", value="SPY").upper().strip()
-    period = st.selectbox("History Period", ["5y", "10y", "15y", "20y"], index=1)
-    return_type = st.radio("Return Type", ["Daily", "Weekly", "Monthly"], index=2)
-    show_ci = st.checkbox("Show 95% Confidence Intervals", value=True)
-    st.divider()
-    compare_syms_raw = st.text_input("Compare Symbols (comma-sep)", placeholder="QQQ,IWM,GLD",
-                                      help="Add symbols to compare seasonality patterns side-by-side")
-    st.divider()
-    st.caption("Patterns are computed from historical data and do not guarantee future results.")
+# ── Inline controls ───────────────────────────────────────────────────────────
+with st.expander("⚙ Settings", expanded=True):
+    _sc1, _sc2, _sc3, _sc4 = st.columns([2, 2, 2, 3])
+    symbol      = _sc1.text_input("Primary Symbol", value="SPY").upper().strip()
+    period      = _sc1.selectbox("History Period", ["5y", "10y", "15y", "20y"], index=1)
+    return_type = _sc2.radio("Return Type", ["Daily", "Weekly", "Monthly"], index=2)
+    show_ci     = _sc2.checkbox("Show 95% Confidence Intervals", value=True)
+    compare_syms_raw = _sc3.text_input("Compare Symbols (comma-sep)", placeholder="QQQ,IWM,GLD",
+                                        help="Add symbols to compare seasonality patterns side-by-side")
+    _sc4.caption("Patterns are computed from historical data and do not guarantee future results.")
 
 compare_syms = [s.strip().upper() for s in compare_syms_raw.split(",") if s.strip()] if compare_syms_raw else []
 all_syms = [symbol] + compare_syms
@@ -52,6 +50,18 @@ def load_seasonal_data(sym: str, period: str) -> pd.DataFrame:
     df["day_of_year"]   = df.index.dayofyear
     df["decade"]        = (df["year"] // 10) * 10
     return df.dropna(subset=["daily_return"])
+
+
+@st.cache_data(ttl=86400)
+def load_monthly_returns(sym: str, period: str) -> pd.Series:
+    raw = yf.download(sym, period=period, auto_adjust=True, progress=False)
+    if raw.empty:
+        return pd.Series(dtype=float)
+    if isinstance(raw.columns, pd.MultiIndex):
+        raw.columns = raw.columns.droplevel(1)
+    monthly = raw["Close"].resample("ME").last()
+    return monthly.pct_change().dropna()
+
 
 DOW_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri"]
 MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -397,18 +407,8 @@ with tab_multi:
     st.subheader("Multi-Symbol Seasonality Comparison")
 
     if not compare_syms:
-        st.info("Add comparison symbols in the sidebar (e.g. QQQ,IWM,GLD) to compare seasonal patterns.")
+        st.info("Add comparison symbols in the Settings expander above (e.g. QQQ,IWM,GLD) to compare seasonal patterns.")
     else:
-        @st.cache_data(ttl=86400)
-        def load_monthly_returns(sym: str, period: str) -> pd.Series:
-            raw = yf.download(sym, period=period, auto_adjust=True, progress=False)
-            if raw.empty:
-                return pd.Series(dtype=float)
-            if isinstance(raw.columns, pd.MultiIndex):
-                raw.columns = raw.columns.droplevel(1)
-            monthly = raw["Close"].resample("ME").last()
-            return monthly.pct_change().dropna()
-
         # Load for all symbols
         monthly_data = {}
         for sym in all_syms:

@@ -191,14 +191,14 @@ def run_scan(tickers_key: str, strategy: str, params_key: str, period: str) -> p
 # Run & display
 # ─────────────────────────────────────────────────────────────────────────────
 if not run_btn:
-    st.markdown(info_banner(
-        "⟵  Configure your universe and strategy in the sidebar, then click <b>Run Scanner</b>.",
+    st.html(info_banner(
+        "⟵  Configure your universe and strategy above, then click <b>Run Scanner</b>.",
         "#4e9af1",
-    ), unsafe_allow_html=True)
+    ))
 
     # Preview universe
     tickers_preview = UNIVERSE_OPTIONS.get(universe_choice, [])
-    st.markdown(section_header(f"Universe preview — {universe_choice}", f"{len(tickers_preview)} stocks"), unsafe_allow_html=True)
+    st.html(section_header(f"Universe preview — {universe_choice}", f"{len(tickers_preview)} stocks"))
     chips = " ".join(f"`{t}`" for t in tickers_preview[:40])
     st.markdown(chips + (" …" if len(tickers_preview) > 40 else ""))
     st.stop()
@@ -370,7 +370,7 @@ with tab_rank:
         st.plotly_chart(fig_bot, use_container_width=True)
 
     # Scatter: B&H return vs strategy return
-    st.markdown(section_header("Alpha Map", "Each dot = one stock. Above the diagonal = strategy beats buy & hold"), unsafe_allow_html=True)
+    st.html(section_header("Alpha Map", "Each dot = one stock. Above the diagonal = strategy beats buy & hold"))
     fig_sc = px.scatter(
         df, x="B&H Ret %", y="Strat Ret %", text="Symbol",
         color="Excess Ret %",
@@ -397,7 +397,7 @@ with tab_rank:
 with tab_dist:
     d1, d2 = st.columns(2)
     with d1:
-        st.markdown(section_header("RSI Distribution"), unsafe_allow_html=True)
+        st.html(section_header("RSI Distribution"))
         fig_rsi = go.Figure(go.Histogram(x=df["RSI"], nbinsx=25,
                                           marker_color="#4e9af1", opacity=.8))
         fig_rsi.add_vline(x=30, line_dash="dash", line_color="#00d4aa", annotation_text="30")
@@ -409,7 +409,7 @@ with tab_dist:
         st.plotly_chart(fig_rsi, use_container_width=True)
 
     with d2:
-        st.markdown(section_header("Excess Return Distribution"), unsafe_allow_html=True)
+        st.html(section_header("Excess Return Distribution"))
         fig_ex = go.Figure(go.Histogram(x=df["Excess Ret %"], nbinsx=25,
                                          marker_color="#b44ef1", opacity=.8))
         fig_ex.add_vline(x=0, line_dash="dash", line_color="#fafafa")

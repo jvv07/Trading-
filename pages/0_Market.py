@@ -45,13 +45,13 @@ for i, (name, data) in enumerate(snap.items()):
     pos = data["pct"] >= 0
     suffix = "%" if name not in ("10Y Yield",) else "%"
     with cols[i]:
-        st.markdown(kpi_card(
+        st.html(kpi_card(
             label=name,
             value=f"{data['last']:,.2f}",
             delta=f"{data['pct']:+.2f}%",
             positive=pos,
             accent="#00d4aa" if pos else "#ff4b4b",
-        ), unsafe_allow_html=True)
+        ))
 
 st.divider()
 
@@ -97,7 +97,7 @@ with tab_sectors:
         c1, c2 = st.columns([3, 2])
 
         with c1:
-            st.markdown(section_header("Performance Heatmap", "Returns across timeframes"), unsafe_allow_html=True)
+            st.html(section_header("Performance Heatmap", "Returns across timeframes"))
             periods = ["1D", "1W", "1M", "3M", "6M", "1Y"]
             sectors_list = list(sector_data.keys())
             z = [[sector_data[s].get(p) for p in periods] for s in sectors_list]
@@ -123,7 +123,7 @@ with tab_sectors:
             st.plotly_chart(fig, use_container_width=True)
 
         with c2:
-            st.markdown(section_header("Today's Allocation", "S&P 500 sector weights × 1D return"), unsafe_allow_html=True)
+            st.html(section_header("Today's Allocation", "S&P 500 sector weights × 1D return"))
             treemap_rows = []
             for sector, d in sector_data.items():
                 treemap_rows.append({
@@ -151,7 +151,7 @@ with tab_sectors:
             st.plotly_chart(fig2, use_container_width=True)
 
         # Sector table
-        st.markdown(section_header("Sector Detail"), unsafe_allow_html=True)
+        st.html(section_header("Sector Detail"))
         df_sec = pd.DataFrame([
             {"Sector": s, **{k: v for k, v in d.items() if k != "ETF"}}
             for s, d in sector_data.items()
@@ -172,7 +172,7 @@ with tab_sectors:
 
 # ── Top Movers ────────────────────────────────────────────────────────────────
 with tab_movers:
-    st.markdown(section_header("Top Movers — S&P 100", "Today's biggest % moves"), unsafe_allow_html=True)
+    st.html(section_header("Top Movers — S&P 100", "Today's biggest % moves"))
 
     @st.cache_data(ttl=300)
     def _movers():
@@ -232,7 +232,7 @@ with tab_movers:
 
     bdf = _bubble()
     if not bdf.empty:
-        st.markdown(section_header("Momentum Map", "1-day vs 5-day return (bubble = avg volume)"), unsafe_allow_html=True)
+        st.html(section_header("Momentum Map", "1-day vs 5-day return (bubble = avg volume)"))
         fig3 = px.scatter(
             bdf, x="5D %", y="1D %", size="Avg Vol M", text="Symbol",
             color="1D %",
@@ -295,7 +295,7 @@ with tab_internals:
 
     # RSI distribution
     if internals["rsi_vals"]:
-        st.markdown(section_header("RSI Distribution — S&P 100"), unsafe_allow_html=True)
+        st.html(section_header("RSI Distribution — S&P 100"))
         fig4 = go.Figure(go.Histogram(
             x=internals["rsi_vals"], nbinsx=30,
             marker_color="#4e9af1", opacity=0.8,
